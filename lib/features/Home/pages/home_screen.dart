@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,52 +8,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  final int _placesAdded = 12;
-  final double _totalDistance = 24.5; // Example: in kilometers
-  final int _totalCalories = 980; // Example: calories burned
-  final List<Map<String, String>> _leaderboard = [
-    {'name': 'Alice', 'points': '1200'},
-    {'name': 'Bob', 'points': '1150'},
-    {'name': 'Charlie', 'points': '1100'},
-  ];
-  final List<Map<String, String>> _favoritePlaces = [
-    {'name': 'Library', 'category': 'Study'},
-    {'name': 'Sports Complex', 'category': 'Fitness'},
-    {'name': 'Cafeteria', 'category': 'Food'},
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Smart Campus Dashboard")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(
+        title: _buildUserHeader(),
+      ),
+      body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Places Added & Stats
-              _buildStatCard("Places Added", "$_placesAdded",
-                  HugeIcons.strokeRoundedPinLocation01),
-              const SizedBox(height: 12),
-              _buildStatCard(
-                  "Total Distance Traveled",
-                  "${_totalDistance.toStringAsFixed(1)} km",
-                  HugeIcons.strokeRoundedRoad),
-              const SizedBox(height: 12),
-              _buildStatCard("Total Calories Burnt", "$_totalCalories kcal",
-                  HugeIcons.strokeRoundedFire),
-
-              const SizedBox(height: 20),
-
-              // Leaderboard
-              _buildSectionTitle("Leaderboard"),
+              // _buildUserHeader(),
+              // const SizedBox(height: 24),
+              _buildStatsGrid(),
+              const SizedBox(height: 24),
               _buildLeaderboard(),
-
-              const SizedBox(height: 20),
-
-              // Favorite Places
-              _buildSectionTitle("Favorite Places"),
+              const SizedBox(height: 24),
               _buildFavoritePlaces(),
             ],
           ),
@@ -63,24 +34,96 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildUserHeader() {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: Colors.blue.shade100,
+          child: const Icon(Icons.person, size: 35, color: Colors.blue),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          'John Doe',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 1.5,
+      children: [
+        _buildStatCard(
+          icon: Icons.place,
+          title: 'Places Added',
+          value: '28',
+          color: Colors.blue,
+        ),
+        _buildStatCard(
+          icon: Icons.directions_walk,
+          title: 'Distance',
+          value: '142 km',
+          color: Colors.green,
+        ),
+        _buildStatCard(
+          icon: Icons.local_fire_department,
+          title: 'Calories',
+          value: '12,450',
+          color: Colors.orange,
+        ),
+        _buildStatCard(
+          icon: Icons.emoji_events,
+          title: 'Rank',
+          value: '#5',
+          color: Colors.purple,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 30, color: Colors.blue),
-          const SizedBox(width: 12),
+          Icon(icon, color: color),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold)),
-              Text(value, style: const TextStyle(fontSize: 16)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: color.withOpacity(0.8),
+                ),
+              ),
             ],
           ),
         ],
@@ -88,37 +131,163 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
+  Widget _buildLeaderboard() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Leaderboard',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer.withAlpha(50),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              _buildLeaderboardItem('Jane Smith', '234 places', 1),
+              const Divider(),
+              _buildLeaderboardItem('Mike Johnson', '198 places', 2),
+              const Divider(),
+              _buildLeaderboardItem('Sarah Wilson', '165 places', 3),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildLeaderboard() {
-    return Column(
-      children: _leaderboard.map((entry) {
-        return ListTile(
-          leading: Icon(HugeIcons.strokeRoundedMedal01, color: Colors.orange),
-          title: Text(entry['name']!),
-          trailing: Text("${entry['points']} pts"),
-        );
-      }).toList(),
+  Widget _buildLeaderboardItem(String name, String score, int position) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: position == 1 ? Colors.amber : Colors.grey.shade300,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '#$position',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: position == 1 ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  score,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFavoritePlaces() {
     return Column(
-      children: _favoritePlaces.map((place) {
-        return ListTile(
-          leading: Icon(HugeIcons.strokeRoundedFavourite, color: Colors.red),
-          title: Text(place['name']!),
-          subtitle: Text(place['category']!),
-        );
-      }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Favorite Places',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          height: 120,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildFavoritePlaceCard(
+                'Central Park',
+                'Nature',
+                Icons.park,
+                Colors.green,
+              ),
+              _buildFavoritePlaceCard(
+                'City Library',
+                'Study',
+                Icons.local_library,
+                Colors.blue,
+              ),
+              _buildFavoritePlaceCard(
+                'Fitness Center',
+                'Exercise',
+                Icons.fitness_center,
+                Colors.orange,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFavoritePlaceCard(
+    String name,
+    String category,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon, color: color),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                category,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
