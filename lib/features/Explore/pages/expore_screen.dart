@@ -1,6 +1,7 @@
 // lib/widgets/custom_navbar.dart
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -33,30 +34,60 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   // Search Bar
                   TypeAheadField(
-                      suggestionsCallback: (list) => _firestore
+                    suggestionsCallback: (pattern) async {
+                      QuerySnapshot snapshot = await _firestore
                           .collection("locations")
-                          .snapshots()
-                          .toList(),
-                      onSelected: (item) => setState(() {
-                            _selectedPlace = item;
-                          }),
-                      itemBuilder: (context, itemData) {
-                        return TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Where to?',
-                            prefixIcon:
-                                const Icon(HugeIcons.strokeRoundedSearch01),
-                            suffixIcon: const Icon(Icons.mic),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[100],
+                          .where('name', isGreaterThanOrEqualTo: pattern)
+                          .where('name',
+                              isLessThanOrEqualTo:
+                                  '${pattern}z') // Case-insensitive search
+                          .get();
+
+                      return snapshot.docs
+                          .map((doc) => doc)
+                          .toList(); // Return list of docs
+                    },
+                    itemBuilder: (context, DocumentSnapshot doc) {
+                      Map<String, dynamic> data =
+                          doc.data() as Map<String, dynamic>;
+                      return ListTile(
+                        title: Text(
+                          data['name'],
+                        ), // Display location name
+                        subtitle: Text(
+                          data['category'],
+                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                        ),
+                        leading: Icon(
+                          getCategoryIcon(data['category']),
+                        ),
+                      );
+                    },
+                    onSelected: (DocumentSnapshot doc) {
+                      setState(() {
+                        _selectedPlace = doc.data(); // Save selected place
+                        log(_selectedPlace);
+                      });
+                    },
+                    builder: (context, textController, focusNode) {
+                      return TextField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Where to?',
+                          prefixIcon:
+                              const Icon(HugeIcons.strokeRoundedSearch01),
+                          suffixIcon: const Icon(Icons.mic),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
                           ),
-                        );
-                      }),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   // Category Icons
                   Row(
@@ -82,8 +113,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 GoogleMap(
                   initialCameraPosition: const CameraPosition(
-                    target:
-                        LatLng(37.7749, -122.4194), // San Francisco coordinates
+                    target: LatLng(5.362312610147424,
+                        -0.633134506275042), // San Francisco coordinates
                     zoom: 14,
                   ),
                   myLocationButtonEnabled: true,
@@ -96,8 +127,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   maxChildSize: 1,
                   builder: (context, scrollController) {
                     return Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(16)),
                       ),
@@ -136,10 +167,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withAlpha(30),
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Colors.black),
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12)),
@@ -197,11 +231,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildCategoryTile(String title, IconData icon) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
+      leading: HugeIcon(
+        icon: icon,
+        color: Theme.of(context).colorScheme.secondary,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.inverseSurface,
+        ),
+      ),
       onTap: () {
         // Navigate to the category pages
       },
     );
+  }
+
+  IconData getCategoryIcon(String categoryName) {
+    final categoryMap = {
+      'ATMs': HugeIcons.strokeRoundedAtm01,
+      'Pharmacies': HugeIcons.strokeRoundedMedicineBottle01,
+      'Groceries': HugeIcons.strokeRoundedShoppingBag02,
+      'Bars & Pubs': HugeIcons.strokeRoundedDrink,
+      'Shopping centers': HugeIcons.strokeRoundedShoppingCart01,
+      'Hostels': HugeIcons.strokeRoundedBedBunk,
+      'Gyms': HugeIcons.strokeRoundedDumbbell01,
+      'Churches': HugeIcons.strokeRoundedChurch,
+      'Printing Services': HugeIcons.strokeRoundedPrinter,
+    };
+
+    return categoryMap[categoryName] ??
+        Icons.help_outline; // Default icon if not found
   }
 }
