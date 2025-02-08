@@ -115,11 +115,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   initialCameraPosition: const CameraPosition(
                     target: LatLng(5.362312610147424,
                         -0.633134506275042), // San Francisco coordinates
-                    zoom: 14,
+                    zoom: 13,
                   ),
+                  mapType: MapType.normal,
                   myLocationButtonEnabled: true,
                   myLocationEnabled: true,
-                  tileOverlays: {},
                 ),
                 // Categories Panel
                 DraggableScrollableSheet(
