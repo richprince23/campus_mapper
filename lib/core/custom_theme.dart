@@ -40,6 +40,7 @@ abstract final class AppTheme {
     visualDensity: FlexColorScheme.comfortablePlatformDensity,
     cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
     primaryTextTheme: GoogleFonts.aBeeZeeTextTheme(),
+    textTheme: GoogleFonts.aBeeZeeTextTheme(),
   );
   // The defined dark theme.
   static ThemeData dark = FlexThemeData.dark(
@@ -63,5 +64,6 @@ abstract final class AppTheme {
     visualDensity: FlexColorScheme.comfortablePlatformDensity,
     cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
     primaryTextTheme: GoogleFonts.aBeeZeeTextTheme(),
+    textTheme: GoogleFonts.aBeeZeeTextTheme(),
   );
 }
