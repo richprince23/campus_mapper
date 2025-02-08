@@ -119,6 +119,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   myLocationButtonEnabled: true,
                   myLocationEnabled: true,
+                  tileOverlays: {},
                 ),
                 // Categories Panel
                 DraggableScrollableSheet(
