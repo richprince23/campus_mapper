@@ -66,7 +66,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     onSelected: (DocumentSnapshot doc) {
                       setState(() {
                         _selectedPlace = doc.data(); // Save selected place
-                        log(_selectedPlace);
+                        log(_selectedPlace['location'].toString());
                       });
                     },
                     builder: (context, textController, focusNode) {
