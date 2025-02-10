@@ -19,7 +19,6 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final TextEditingController _searchController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Location? selectedPlace;
@@ -84,9 +83,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         context.read<MapProvider>().addMarker(selectedPlace!);
                         _mapController.animateCamera(
                           CameraUpdate.newLatLngZoom(
-                              LatLng(selectedPlace!.location.latitude,
-                                  selectedPlace!.location.longitude),
-                              17),
+                            LatLng(
+                              selectedPlace!.location.latitude,
+                              selectedPlace!.location.longitude,
+                            ),
+                            17,
+                          ),
                         );
                       });
                     },
