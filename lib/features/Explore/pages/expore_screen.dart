@@ -1,11 +1,14 @@
 // lib/widgets/custom_navbar.dart
 import 'dart:developer';
 
+import 'package:campus_mapper/features/Explore/models/location.dart';
+import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 
 // lib/screens/directions_screen.dart
 class ExploreScreen extends StatefulWidget {
@@ -19,7 +22,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  var _selectedPlace;
+  Location? selectedPlace;
+
+  late GoogleMapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Provider.of<MapProvider>(context, listen: false).markers;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,9 +75,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       );
                     },
                     onSelected: (DocumentSnapshot doc) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      var loc = data['location'] as GeoPoint;
+                      log(loc.latitude.toString());
                       setState(() {
-                        _selectedPlace = doc.data(); // Save selected place
-                        log(_selectedPlace['location'].toString());
+                        selectedPlace = Location.fromJson(doc.data()
+                            as Map<String, dynamic>); // Save selected place
+                        context.read<MapProvider>().addMarker(selectedPlace!);
+                        _mapController.animateCamera(
+                          CameraUpdate.newLatLngZoom(
+                              LatLng(selectedPlace!.location.latitude,
+                                  selectedPlace!.location.longitude),
+                              17),
+                        );
                       });
                     },
                     builder: (context, textController, focusNode) {
@@ -120,6 +141,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   mapType: MapType.normal,
                   myLocationButtonEnabled: true,
                   myLocationEnabled: true,
+                  markers: context.read<MapProvider>().markers,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
                 ),
                 // Categories Panel
                 DraggableScrollableSheet(

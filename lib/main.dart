@@ -1,15 +1,24 @@
 import 'package:campus_mapper/core/custom_theme.dart';
+import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:campus_mapper/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MainApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => MapProvider()),
+      ],
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
