@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -33,9 +35,12 @@ class MapProvider extends ChangeNotifier {
     _markers.add(
       Marker(
         markerId: MarkerId(
-          data.id ?? "0",
+          data.id.toString(),
         ),
-        position: LatLng(data.location.latitude, data.location.longitude),
+        position: LatLng(
+          data.location['latitude'],
+          data.location['longitude'],
+        ),
         infoWindow: InfoWindow(title: data.name, snippet: data.description),
         draggable: false,
         icon: await getCustomIcon(data.category),
