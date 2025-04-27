@@ -1,15 +1,21 @@
 import 'package:campus_mapper/core/custom_theme.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
-import 'package:campus_mapper/firebase_options.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Supabase.initialize(
+    url: "https://ldwnikdoqijibgkwebgj.supabase.co",
+    anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkd25pa2RvcWlqaWJna3dlYmdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MzcwMzMsImV4cCI6MjA2MTMxMzAzM30.vH0YTnKzE3x8tFJ4odjxrLG43HU-cfWRMzSGieylbnI",
+    authOptions: FlutterAuthClientOptions(
+      autoRefreshToken: true,
+      localStorage:
+          SharedPreferencesLocalStorage(persistSessionKey: "_auth_token"),
+    ),
   );
   runApp(
     MultiProvider(
