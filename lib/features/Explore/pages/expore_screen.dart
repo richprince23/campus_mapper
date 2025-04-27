@@ -1,16 +1,16 @@
-// lib/widgets/custom_navbar.dart
+// lib/features/Explore/screens/explore_screen.dart
 import 'dart:developer';
 
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:campus_mapper/core/api/supabase_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// lib/screens/directions_screen.dart
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
 
@@ -19,15 +19,13 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
   Location? selectedPlace;
-
   late GoogleMapController _mapController;
 
   @override
   void initState() {
     super.initState();
-    // Provider.of<MapProvider>(context, listen: false).markers;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<MapProvider>(context, listen: false).clearMarkers();
     });
@@ -51,49 +49,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Column(
                 children: [
                   // Search Bar
-                  TypeAheadField(
+                  TypeAheadField<Map<String, dynamic>>(
                     suggestionsCallback: (pattern) async {
-                      QuerySnapshot snapshot = await _firestore
-                          .collection("locations")
-                          .where('name', isGreaterThanOrEqualTo: pattern)
-                          .where('name',
-                              isLessThanOrEqualTo:
-                                  '${pattern}z') // Case-insensitive search
-                          .get();
+                      if (pattern.length < 2) return [];
 
-                      return snapshot.docs
-                          .map((doc) => doc)
-                          .toList(); // Return list of docs
+                      // Use Supabase to search for locations
+                      final response = await _supabase
+                          .from('locations')
+                          .select()
+                          .ilike('name', '%$pattern%');
+
+                      log(response.toString());
+                      if (response.isEmpty) {
+                        log('Error: An error occured');
+                        return [];
+                      }
+
+                      return (response as List)
+                          .map((item) => item as Map<String, dynamic>)
+                          .toList();
                     },
-                    itemBuilder: (context, DocumentSnapshot doc) {
-                      Map<String, dynamic> data =
-                          doc.data() as Map<String, dynamic>;
+                    itemBuilder: (context, Map<String, dynamic> suggestion) {
                       return ListTile(
-                        title: Text(
-                          data['name'],
-                        ), // Display location name
+                        title: Text(suggestion['name'] ?? 'Unknown'),
                         subtitle: Text(
-                          data['category'],
+                          suggestion['category'] ?? '',
                           style: TextStyle(fontSize: 13, color: Colors.black54),
                         ),
                         leading: Icon(
-                          getCategoryIcon(data['category']),
+                          getCategoryIcon(suggestion['category'] ?? ''),
                         ),
                       );
                     },
-                    onSelected: (DocumentSnapshot doc) {
-                      var data = doc.data() as Map<String, dynamic>;
-                      var loc = data['location'] as GeoPoint;
-                      log(loc.latitude.toString());
+                    onSelected: (Map<String, dynamic> suggestion) {
                       setState(() {
-                        selectedPlace = Location.fromJson(doc.data()
-                            as Map<String, dynamic>); // Save selected place
+                        selectedPlace = Location.fromJson(suggestion);
                         context.read<MapProvider>().addMarker(selectedPlace!);
                         _mapController.animateCamera(
                           CameraUpdate.newLatLngZoom(
                             LatLng(
-                              selectedPlace!.location.latitude,
-                              selectedPlace!.location.longitude,
+                              selectedPlace!.location['latitude'],
+                              selectedPlace!.location['longitude'],
                             ),
                             17,
                           ),
@@ -140,24 +136,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
           // Map View
           Expanded(
+            // height: MediaQuery.sizeOf(context).height - 80,
             child: Stack(
+              fit: StackFit.loose,
               children: [
                 GoogleMap(
                   initialCameraPosition: const CameraPosition(
-                    target: LatLng(5.362312610147424,
-                        -0.633134506275042), // San Francisco coordinates
+                    target: LatLng(5.362312610147424, -0.633134506275042),
                     zoom: 13,
                   ),
                   mapType: MapType.normal,
                   myLocationButtonEnabled: true,
                   myLocationEnabled: true,
-                  markers: context.read<MapProvider>().markers,
+                  markers: context
+                      .watch<MapProvider>()
+                      .markers, // Use watch instead of read
                   onMapCreated: (controller) {
                     _mapController = controller;
                   },
+                  zoomControlsEnabled: false, // Reduce initial map features
+                  compassEnabled: false,
                 ),
                 // Categories Panel
                 DraggableScrollableSheet(
+                  snap: true,
+                  snapSizes: [0.3, 1],
                   initialChildSize: 0.3,
                   minChildSize: 0.1,
                   maxChildSize: 1,
@@ -170,9 +173,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                       child: ListView(
                         controller: scrollController,
+                        shrinkWrap: true,
                         children: [
-                          const SizedBox(height: 8),
-                          Center(
+                          // const SizedBox(height: 8),
+                          Text("Explore more"),
+                          Align(
+                            alignment: Alignment.center,
                             child: Container(
                               width: 40,
                               height: 4,
@@ -277,8 +283,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
           color: Theme.of(context).colorScheme.inverseSurface,
         ),
       ),
-      onTap: () {
-        // Navigate to the category pages
+      onTap: () async {
+        // Load locations by category
+        final response = await _supabase
+            .from('locations')
+            .select()
+            .eq('category', title)
+            .limit(20);
+
+        if (response == null) {
+          log('Error loading category: An error occured');
+          return;
+        }
+
+        // Clear previous markers
+        context.read<MapProvider>().clearMarkers();
+
+        // Add markers for all locations in this category
+        final locations = (response as List)
+            .map((item) => Location.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+        for (var location in locations) {
+          context.read<MapProvider>().addMarker(location);
+        }
+
+        // Fit map to show all markers if there are any
+        if (locations.isNotEmpty) {
+          // Use the first location to center the map
+          _mapController.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(
+                locations.first.location['latitude'],
+                locations.first.location['longitude'],
+              ),
+              14,
+            ),
+          );
+        }
       },
     );
   }
