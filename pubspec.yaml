@@ -29,6 +29,8 @@ dependencies:
   flex_color_scheme: ^8.2.0
   supabase_flutter: ^2.8.4
 
+  http:
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
