@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapProvider extends ChangeNotifier {
-
-
   Set<Marker> _markers = {};
 
   Future<BitmapDescriptor> getCustomIcon(String category) async {
@@ -48,4 +46,9 @@ class MapProvider extends ChangeNotifier {
 
   ///Get all markers
   Set<Marker> get markers => _markers;
+
+  void clearMarkers() {
+    _markers.clear();
+    notifyListeners();
+  }
 }
