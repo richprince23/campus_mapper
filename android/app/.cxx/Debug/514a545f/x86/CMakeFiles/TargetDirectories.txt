@@ -1,0 +1,2 @@
+/Volumes/STORAGE/PROJECTS/ARKSoft/campus_mapper/android/app/.cxx/Debug/514a545f/x86/CMakeFiles/edit_cache.dir
+/Volumes/STORAGE/PROJECTS/ARKSoft/campus_mapper/android/app/.cxx/Debug/514a545f/x86/CMakeFiles/rebuild_cache.dir
