@@ -13,13 +13,13 @@ class ActiveJourneyScreen extends StatefulWidget {
   final double calories;
 
   const ActiveJourneyScreen({
-    Key? key,
+    super.key,
     required this.destinationName,
     required this.destinationLocation,
     required this.polylines,
     required this.distance,
     required this.calories,
-  }) : super(key: key);
+  });
 
   @override
   State<ActiveJourneyScreen> createState() => _ActiveJourneyScreenState();
