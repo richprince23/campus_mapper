@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:campus_mapper/core/api/route_service.dart';
@@ -69,59 +68,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       );
     }
   }
-
-  // Future<void> _getRoute() async {
-  //   if (_userPosition == null || selectedPlace == null) {
-  //     return;
-  //   }
-
-  //   setState(() {
-  //     _isLoadingRoute = true;
-  //     _routeAvailable = false;
-  //   });
-
-  //   try {
-  //     final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
-  //     final destination = LatLng(
-  //       selectedPlace!.location['latitude'],
-  //       selectedPlace!.location['longitude'],
-  //     );
-
-  //     final routeData = await RouteService.getRoute(origin, destination);
-
-  //     // Create a polyline from the route
-  //     final polyline = Polyline(
-  //       polylineId: const PolylineId('route'),
-  //       points: routeData['polylineCoordinates'],
-  //       color: Theme.of(context).colorScheme.primary,
-  //       width: 5,
-  //     );
-
-  //     setState(() {
-  //       _polylines = {polyline};
-  //       _routeDistance = routeData['distance'].toDouble();
-  //       _routeDuration = routeData['duration'];
-  //       _calories = RouteService.calculateCalories(_routeDistance);
-  //       _isLoadingRoute = false;
-  //       _routeAvailable = true;
-  //     });
-
-  //     // Adjust camera to show the entire route
-  //     _mapController.animateCamera(
-  //       CameraUpdate.newLatLngBounds(
-  //         _getLatLngBounds(routeData['polylineCoordinates']),
-  //         100, // padding
-  //       ),
-  //     );
-  //   } catch (e) {
-  //     setState(() {
-  //       _isLoadingRoute = false;
-  //     });
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Error calculating route: $e')),
-  //     );
-  //   }
-  // }
 
   LatLngBounds _getLatLngBounds(List<LatLng> points) {
     double minLat = points.first.latitude;
@@ -570,6 +516,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       setState(() {
         _polylines = {polyline};
         _routeDistance = routeData['distance'].toDouble();
+        // _routeDistance = routeData['distance'];
         _routeDuration = routeData['duration'];
         _calories = RouteService.calculateCalories(_routeDistance);
         _isLoadingRoute = false;
