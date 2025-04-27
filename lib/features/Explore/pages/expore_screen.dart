@@ -19,7 +19,6 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Location? selectedPlace;
 
@@ -29,6 +28,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     // Provider.of<MapProvider>(context, listen: false).markers;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<MapProvider>(context, listen: false).clearMarkers();
+    });
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   @override
