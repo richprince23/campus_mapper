@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 enum UserActivity { walking, running, cycling, driving, still, unknown }
 
