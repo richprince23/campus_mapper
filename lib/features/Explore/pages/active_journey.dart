@@ -137,7 +137,7 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              HugeIcons.strokeRoundedCheckmarkCircle02,
+              HugeIcons.strokeRoundedCheckmarkCircle01,
               color: Colors.green,
               size: 48,
             ),
@@ -275,14 +275,14 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
                       ),
                       _buildJourneyInfo(
                         context,
-                        HugeIcons.strokeRoundedRoute03,
+                        HugeIcons.strokeRoundedRoute01,
                         '${(_distanceCovered / 1000).toStringAsFixed(2)} km',
                         'Distance',
                       ),
                       _buildJourneyInfo(
                         context,
-                        HugeIcons.strokeRoundedFire02,
-                        '${_caloriesBurned.toStringAsFixed(0)}',
+                        HugeIcons.strokeRoundedFire,
+                        _caloriesBurned.toStringAsFixed(0),
                         'Calories',
                       ),
                     ],

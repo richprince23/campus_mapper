@@ -7,6 +7,8 @@ import 'package:google_maps_routes/google_maps_routes.dart';
 import 'package:geolocator/geolocator.dart';
 
 class RouteService {
+  static const String _apiKey = EnvKeys.mapsKey; // Replace with your API key
+
   // Get the user's current location
   static Future<Position> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -33,44 +35,68 @@ class RouteService {
   static Future<Map<String, dynamic>> getRoute(
       LatLng origin, LatLng destination) async {
     try {
-      MapsRoutes route = MapsRoutes();
-      DistanceCalculator distanceCalculator = DistanceCalculator();
+      // Use direct distance calculation as primary method
+      double distanceInKm = calculateDistance(origin, destination);
+      double distanceInMeters = distanceInKm * 1000;
 
-      List<LatLng> points = [origin, destination];
+      // Estimate duration based on average walking speed (1.4 m/s = 5 km/h)
+      int durationInSeconds = (distanceInMeters / 1.4).round();
 
-      // Get the route
-      await route.drawRoute(
-        points,
-        'Route to Destination',
-        Colors.blue,
-        EnvKeys.mapsKey, // Replace with your API key
-        travelMode: TravelModes.walking,
-      );
+      // Create a simple route with origin and destination
+      List<LatLng> routePoints = [origin, destination];
 
-      // Calculate distance in meters
-      String distanceInMeters =
-          distanceCalculator.calculateRouteDistance(points, decimals: 2) * 1000;
+      print('Direct distance calculation: ${distanceInKm} km');
+      print('Distance in meters: ${distanceInMeters}');
 
-      // Estimate duration (assuming 1.4 m/s average walking speed)
-      double distance = double.parse(distanceInMeters.split(' km')[0]);
-      int durationInSeconds = (distance / 1.4).round();
+      // Try to use google_maps_routes for better path if API key is available
+      if (_apiKey != "YOUR_GOOGLE_MAPS_API_KEY") {
+        try {
+          MapsRoutes route = MapsRoutes();
+          await route.drawRoute(
+            [origin, destination],
+            'Route to Destination',
+            Colors.blue,
+            _apiKey,
+            travelMode: TravelModes.walking,
+          );
 
+          if (route.routes.isNotEmpty && route.routes.isNotEmpty) {
+            routePoints = route.routes.first.points;
+
+            // Recalculate distance based on actual route points
+            double totalDistance = 0.0;
+            for (int i = 0; i < routePoints.length - 1; i++) {
+              totalDistance +=
+                  calculateDistance(routePoints[i], routePoints[i + 1]);
+            }
+
+            distanceInMeters = totalDistance * 1000;
+            durationInSeconds = (distanceInMeters / 1.4).round();
+
+            print('Google Maps route distance: ${totalDistance} km');
+          }
+        } catch (e) {
+          print('Google Maps Routes API failed, using direct route: $e');
+        }
+      }
+
+      // Ensure we return clean numeric values
       return {
-        'polylineCoordinates':
-            route.routes.isNotEmpty ? route.routes.first.points : points,
-        'distance': distanceInMeters,
-        'duration': durationInSeconds,
-        'routeObject': route,
+        'polylineCoordinates': routePoints,
+        'distance': distanceInMeters, // Always return as double (meters)
+        'duration': durationInSeconds, // Always return as int (seconds)
       };
     } catch (e) {
-      // Fallback to direct distance if API fails
+      print('Route calculation error: $e');
+      // Final fallback
       double distanceInKm = calculateDistance(origin, destination);
-      int estimatedTimeInSeconds = (distanceInKm * 1000 / 1.4).round();
+      double distanceInMeters = distanceInKm * 1000;
+      int estimatedTimeInSeconds = (distanceInMeters / 1.4).round();
 
       return {
         'polylineCoordinates': [origin, destination],
-        'distance': distanceInKm * 1000,
-        'duration': estimatedTimeInSeconds,
+        'distance': distanceInMeters, // Ensure it's a double
+        'duration': estimatedTimeInSeconds, // Ensure it's an int
         'isEstimate': true,
       };
     }

@@ -1,17 +1,19 @@
+// lib/features/Explore/screens/explore_screen.dart
 import 'dart:developer';
 
 import 'package:campus_mapper/core/api/route_service.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
+
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -65,6 +67,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error getting location: $e')),
+      );
+    }
+  }
+
+  Future<void> _getRoute() async {
+    if (_userPosition == null || selectedPlace == null) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingRoute = true;
+      _routeAvailable = false;
+      _polylines = {}; // Clear existing polylines
+    });
+
+    try {
+      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
+      final destination = LatLng(
+        selectedPlace!.location['latitude'],
+        selectedPlace!.location['longitude'],
+      );
+
+      final routeData = await RouteService.getRoute(origin, destination);
+
+      // Safely extract numeric values
+      double distance = 0.0;
+      int duration = 0;
+
+      // Handle distance - ensure it's a number
+      final distanceValue = routeData['distance'];
+      if (distanceValue is double) {
+        distance = distanceValue;
+      } else if (distanceValue is int) {
+        distance = distanceValue.toDouble();
+      } else if (distanceValue is String) {
+        // Try to parse if it's a string
+        try {
+          distance =
+              double.parse(distanceValue.replaceAll(RegExp(r'[^0-9.]'), ''));
+        } catch (e) {
+          // Fallback calculation
+          distance = RouteService.calculateDistance(origin, destination) * 1000;
+        }
+      }
+
+      // Handle duration - ensure it's a number
+      final durationValue = routeData['duration'];
+      if (durationValue is int) {
+        duration = durationValue;
+      } else if (durationValue is double) {
+        duration = durationValue.round();
+      } else if (durationValue is String) {
+        // Try to parse if it's a string
+        try {
+          duration = int.parse(durationValue.replaceAll(RegExp(r'[^0-9]'), ''));
+        } catch (e) {
+          // Fallback: estimate based on distance
+          duration = (distance / 1.4).round();
+        }
+      }
+
+      // Create a polyline from the route
+      final polyline = Polyline(
+        polylineId: const PolylineId('route'),
+        points: routeData['polylineCoordinates'] ?? [origin, destination],
+        color: Theme.of(context).colorScheme.primary,
+        width: 5,
+        patterns: [], // Solid line
+      );
+
+      setState(() {
+        _polylines = {polyline};
+        _routeDistance = distance;
+        _routeDuration = duration;
+        _calories = RouteService.calculateCalories(_routeDistance);
+        _isLoadingRoute = false;
+        _routeAvailable = true;
+      });
+
+      print('Route calculated: Distance: ${distance}m, Duration: ${duration}s');
+
+      // Adjust camera to show the entire route
+      final polylineCoords =
+          routeData['polylineCoordinates'] ?? [origin, destination];
+      if (polylineCoords.isNotEmpty) {
+        _mapController.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            _getLatLngBounds(polylineCoords),
+            100, // padding
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error in _getRoute: $e');
+      setState(() {
+        _isLoadingRoute = false;
+        _routeAvailable = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error calculating route: $e')),
       );
     }
   }
@@ -160,7 +262,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     onSelected: (Map<String, dynamic> suggestion) {
                       setState(() {
                         selectedPlace = Location.fromJson(suggestion);
+                        // Clear previous markers and polylines
+                        context.read<MapProvider>().clearMarkers();
+                        _polylines = {};
+                        _routeAvailable = false;
+
+                        // Add the selected location marker
                         context.read<MapProvider>().addMarker(selectedPlace!);
+
+                        // Add user location marker back
+                        if (_userPosition != null) {
+                          context.read<MapProvider>().addUserLocationMarker(
+                                LatLng(_userPosition!.latitude,
+                                    _userPosition!.longitude),
+                              );
+                        }
+
                         _mapController.animateCamera(
                           CameraUpdate.newLatLngZoom(
                             LatLng(
@@ -254,7 +371,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
 
                 // Route panel (when route is available)
-                if (_routeAvailable && selectedPlace != null)
+                if (_routeAvailable &&
+                    selectedPlace != null &&
+                    !_isLoadingRoute)
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -271,13 +390,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         setState(() {
                           _routeAvailable = false;
                           _polylines = {};
+                          selectedPlace = null;
+                          context.read<MapProvider>().clearMarkers();
+                          // Add user location marker back
+                          if (_userPosition != null) {
+                            context.read<MapProvider>().addUserLocationMarker(
+                                  LatLng(_userPosition!.latitude,
+                                      _userPosition!.longitude),
+                                );
+                          }
                         });
                       },
                     ),
                   ),
 
-                // Categories Panel (only show when no route is available)
-                if (!_routeAvailable)
+                // Categories Panel (only show when no route is available and not loading)
+                if (!_routeAvailable && !_isLoadingRoute)
                   DraggableScrollableSheet(
                     snap: true,
                     snapSizes: const [0.3, 1],
@@ -482,61 +610,5 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return categoryMap[categoryName] ??
         Icons.help_outline; // Default icon if not found
-  }
-
-  // Update this method in your ExploreScreen class
-
-  Future<void> _getRoute() async {
-    if (_userPosition == null || selectedPlace == null) {
-      return;
-    }
-
-    setState(() {
-      _isLoadingRoute = true;
-      _routeAvailable = false;
-    });
-
-    try {
-      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
-      final destination = LatLng(
-        selectedPlace!.location['latitude'],
-        selectedPlace!.location['longitude'],
-      );
-
-      final routeData = await RouteService.getRoute(origin, destination);
-
-      // Create a polyline from the route
-      final polyline = Polyline(
-        polylineId: const PolylineId('route'),
-        points: routeData['polylineCoordinates'],
-        color: Theme.of(context).colorScheme.primary,
-        width: 5,
-      );
-
-      setState(() {
-        _polylines = {polyline};
-        _routeDistance = routeData['distance'].toDouble();
-        // _routeDistance = routeData['distance'];
-        _routeDuration = routeData['duration'];
-        _calories = RouteService.calculateCalories(_routeDistance);
-        _isLoadingRoute = false;
-        _routeAvailable = true;
-      });
-
-      // Adjust camera to show the entire route
-      _mapController.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          _getLatLngBounds(routeData['polylineCoordinates']),
-          100, // padding
-        ),
-      );
-    } catch (e) {
-      setState(() {
-        _isLoadingRoute = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calculating route: $e')),
-      );
-    }
   }
 }
