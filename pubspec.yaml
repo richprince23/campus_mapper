@@ -28,8 +28,11 @@ dependencies:
   hugeicons: ^0.0.10
   flex_color_scheme: ^8.2.0
   supabase_flutter: ^2.8.4
-
   http:
+
+  flutter_activity_recognition: ^4.0.0
+  flutter_foreground_task: ^9.1.0
+  permission_handler: ^12.0.0+1
 
 dev_dependencies:
   flutter_test:
