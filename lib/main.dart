@@ -2,11 +2,13 @@ import 'package:campus_mapper/core/custom_theme.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterForegroundTask.initCommunicationPort(); // init foreground task
   await Supabase.initialize(
     url: "https://ldwnikdoqijibgkwebgj.supabase.co",
     anonKey:
