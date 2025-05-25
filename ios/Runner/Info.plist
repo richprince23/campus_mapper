@@ -56,6 +56,17 @@
 	<key>NSMotionUsageDescription</key>
 	<string>This app uses motion sensors to detect if you're walking, running, or in a vehicle to calculate calories accurately.</string>
 
+	<!-- background -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.pravera.flutter_foreground_task.refresh</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
