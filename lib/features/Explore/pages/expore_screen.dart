@@ -382,7 +382,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       destinationName:
                           selectedPlace!.name ?? 'Selected Location',
                       distance:
-                          (_routeDistance / 1000).toStringAsFixed(2) + ' km',
+                          '${(_routeDistance / 1000).toStringAsFixed(2)} km',
                       duration: _formatDuration(_routeDuration),
                       calories: _calories,
                       onStartJourney: _startJourney,
@@ -455,7 +455,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final minutes = (seconds % 3600) ~/ 60;
 
     if (hours > 0) {
-      return '$hours h ${minutes} min';
+      return '$hours h $minutes min';
     } else {
       return '$minutes min';
     }
