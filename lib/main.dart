@@ -3,6 +3,7 @@ import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,14 +35,16 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Campus Mapper",
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      // Use dark or light theme based on system setting.
-      themeMode: ThemeMode.system,
-      home: MainScreen(),
+    return KeyboardDismissOnTap(
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: "Campus Mapper",
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        // Use dark or light theme based on system setting.
+        themeMode: ThemeMode.system,
+        home: MainScreen(),
+      ),
     );
   }
 }
