@@ -132,12 +132,6 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
                 // Voice search implementation
               },
             ),
-            IconButton(
-              icon: const Icon(HugeIcons.strokeRoundedCamera01),
-              onPressed: () {
-                // Visual search implementation
-              },
-            ),
           ],
         ),
         body: Consumer<SearchProvider>(
@@ -231,6 +225,25 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
           'Sports & Fitness', HugeIcons.strokeRoundedDumbbell01, Colors.red),
       CategoryItem(
           'Shopping', HugeIcons.strokeRoundedShoppingBag02, Colors.pink),
+      CategoryItem('ATMs', HugeIcons.strokeRoundedAtm01, Colors.cyan),
+      CategoryItem(
+          'Pharmacies', HugeIcons.strokeRoundedMedicineBottle01, Colors.teal),
+      CategoryItem(
+          'Groceries', HugeIcons.strokeRoundedShoppingBag02, Colors.brown),
+      CategoryItem(
+          'Bars & Pubs', HugeIcons.strokeRoundedDrink, Colors.deepOrange),
+      CategoryItem('Shopping Centers', HugeIcons.strokeRoundedShoppingCart01,
+          Colors.amber),
+      CategoryItem('Hostels', HugeIcons.strokeRoundedBedBunk, Colors.indigo),
+      CategoryItem(
+          'Gyms', HugeIcons.strokeRoundedDumbbell01, Colors.lightGreen),
+      CategoryItem('Churches', HugeIcons.strokeRoundedChurch, Colors.lime),
+      CategoryItem(
+          'Printing Services', HugeIcons.strokeRoundedPrinter, Colors.grey),
+      CategoryItem('Classes', HugeIcons.strokeRoundedOnlineLearning01,
+          Colors.pinkAccent),
+      CategoryItem('Offices', HugeIcons.strokeRoundedOffice, Colors.deepPurple),
+      CategoryItem('Store', HugeIcons.strokeRoundedStore04, Colors.blueGrey),
     ];
 
     return GridView.builder(
@@ -253,10 +266,10 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: category.color.withOpacity(0.1),
+              color: category.color.withAlpha(26),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: category.color.withOpacity(0.3),
+                color: category.color.withAlpha(77),
               ),
             ),
             child: Row(
@@ -336,7 +349,7 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withAlpha(26),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -440,7 +453,7 @@ class LocationDetailScreen extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      Theme.of(context).colorScheme.primary.withAlpha(180),
                     ],
                   ),
                 ),
@@ -468,7 +481,7 @@ class LocationDetailScreen extends StatelessWidget {
                         backgroundColor: Theme.of(context)
                             .colorScheme
                             .primary
-                            .withOpacity(0.1),
+                            .withAlpha(180),
                       ),
                       const Spacer(),
                       // if (location.rating != null) ...[
