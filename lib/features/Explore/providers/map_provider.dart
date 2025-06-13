@@ -16,8 +16,7 @@ class MapProvider extends ChangeNotifier {
 
   Future<BitmapDescriptor> getCustomIconColor(String category) async {
     try {
-      return await BitmapDescriptor.defaultMarkerWithHue(
-          _getCategoryHue(category));
+      return BitmapDescriptor.defaultMarkerWithHue(_getCategoryHue(category));
     } catch (e) {
       log('Error getting custom icon: $e');
       return BitmapDescriptor.defaultMarker;
