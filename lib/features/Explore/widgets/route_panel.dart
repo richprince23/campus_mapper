@@ -28,7 +28,7 @@ class RoutePanel extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withAlpha(77),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, -3),
