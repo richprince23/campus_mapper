@@ -5,9 +5,11 @@ import 'package:campus_mapper/core/api/route_service.dart';
 import 'package:campus_mapper/features/Explore/models/category_item.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
+import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
+import 'package:campus_mapper/features/History/pages/history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
@@ -251,7 +253,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                       log(response.toString());
                       if (response.isEmpty) {
-                        log('Error: An error occured');
+                        log('Empty results');
                         return [];
                       }
 
@@ -309,7 +311,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         controller: textController,
                         focusNode: focusNode,
                         decoration: InputDecoration(
-                          hintText: 'Where to?',
+                          hintText: 'Search a location',
                           prefixIcon:
                               const Icon(HugeIcons.strokeRoundedSearch01),
                           suffixIcon: const Icon(Icons.mic),
@@ -483,36 +485,30 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildCategoryGrid() {
     final categories = [
+      CategoryItem('Classes', HugeIcons.strokeRoundedOnlineLearning01,
+          Colors.pinkAccent),
+      CategoryItem('Study Spaces', HugeIcons.strokeRoundedBook02, Colors.blue),
+      CategoryItem('Offices', HugeIcons.strokeRoundedOffice, Colors.deepPurple),
+      CategoryItem('Hostels', HugeIcons.strokeRoundedBedBunk, Colors.indigo),
+      CategoryItem(
+          'Printing Services', HugeIcons.strokeRoundedPrinter, Colors.grey),
       CategoryItem(
           'Food & Dining', HugeIcons.strokeRoundedRestaurant02, Colors.orange),
-      CategoryItem('Study Spaces', HugeIcons.strokeRoundedBook02, Colors.blue),
-      CategoryItem(
-          'Entertainment', HugeIcons.strokeRoundedParty, Colors.purple),
-      CategoryItem(
-          'Services', HugeIcons.strokeRoundedCustomerService, Colors.green),
-      CategoryItem(
-          'Sports & Fitness', HugeIcons.strokeRoundedDumbbell01, Colors.red),
-      CategoryItem(
-          'Shopping', HugeIcons.strokeRoundedShoppingBag02, Colors.pink),
-      CategoryItem('ATMs', HugeIcons.strokeRoundedAtm01, Colors.cyan),
+      CategoryItem('Churches', HugeIcons.strokeRoundedChurch, Colors.lime),
       CategoryItem(
           'Pharmacies', HugeIcons.strokeRoundedMedicineBottle01, Colors.teal),
       CategoryItem(
-          'Groceries', HugeIcons.strokeRoundedShoppingBag02, Colors.brown),
+          'Entertainment', HugeIcons.strokeRoundedParty, Colors.purple),
       CategoryItem(
-          'Bars & Pubs', HugeIcons.strokeRoundedDrink, Colors.deepOrange),
+          'Sports & Fitness', HugeIcons.strokeRoundedDumbbell01, Colors.red),
       CategoryItem('Shopping Centers', HugeIcons.strokeRoundedShoppingCart01,
-          Colors.amber),
-      CategoryItem('Hostels', HugeIcons.strokeRoundedBedBunk, Colors.indigo),
-      CategoryItem(
-          'Gyms', HugeIcons.strokeRoundedDumbbell01, Colors.lightGreen),
-      CategoryItem('Churches', HugeIcons.strokeRoundedChurch, Colors.lime),
-      CategoryItem(
-          'Printing Services', HugeIcons.strokeRoundedPrinter, Colors.grey),
-      CategoryItem('Classes', HugeIcons.strokeRoundedOnlineLearning01,
-          Colors.pinkAccent),
-      CategoryItem('Offices', HugeIcons.strokeRoundedOffice, Colors.deepPurple),
+          Colors.pink),
+      CategoryItem('ATMs', HugeIcons.strokeRoundedAtm01, Colors.cyan),
+      // CategoryItem(
+      //     'Bars & Pubs', HugeIcons.strokeRoundedDrink, Colors.deepOrange),
       CategoryItem('Store', HugeIcons.strokeRoundedStore04, Colors.blueGrey),
+      CategoryItem(
+          'Services', HugeIcons.strokeRoundedCustomerService, Colors.green),
     ];
 
     return GridView.builder(
@@ -532,6 +528,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             // _searchController.text = category.name;
             await _searchProvider.search(category.name);
             print(category.name);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EnhancedSearchScreen(
+                  initialQuery: category.name,
+                ),
+              ),
+            );
           },
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -569,82 +573,92 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildCategoryTile(String title, IconData icon) {
-    return ListTile(
-      leading: HugeIcon(
-        icon: icon,
-        color: Theme.of(context).colorScheme.secondary,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.inverseSurface,
-        ),
-      ),
-      onTap: () async {
-        // Load locations by category
-        final response = await _supabase
-            .from('locations')
-            .select()
-            .eq('category', title)
-            .limit(20);
-
-        if (response == null) {
-          log('Error loading category: An error occured');
-          return;
-        }
-
-        // Clear previous markers
-        context.read<MapProvider>().clearMarkers();
-
-        // Add user location marker back if available
-        if (_userPosition != null) {
-          context.read<MapProvider>().addUserLocationMarker(
-                LatLng(_userPosition!.latitude, _userPosition!.longitude),
-              );
-        }
-
-        // Add markers for all locations in this category
-        final locations = (response as List)
-            .map((item) => Location.fromJson(item as Map<String, dynamic>))
-            .toList();
-
-        for (var location in locations) {
-          context.read<MapProvider>().addMarker(location);
-        }
-
-        // Fit map to show all markers if there are any
-        if (locations.isNotEmpty) {
-          // Use the first location to center the map
-          _mapController.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              LatLng(
-                locations.first.location['latitude'],
-                locations.first.location['longitude'],
+  Widget _buildSearchResults(List<Location> results) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final location = results[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withAlpha(26),
+                borderRadius: BorderRadius.circular(8),
               ),
-              14,
+              child: Icon(
+                getCategoryIcon(location.category),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
-          );
-        }
+            title: Text(
+              location.name ?? 'Unknown',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(location.category),
+                if (location.description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    location.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // if (location.rating != null) ...[
+                //   Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       const Icon(Icons.star, size: 16, color: Colors.amber),
+                //       const SizedBox(width: 2),
+                //       Text(location.rating!.toStringAsFixed(1)),
+                //     ],
+                //   ),
+                // ],
+                const SizedBox(height: 4),
+                const Icon(Icons.arrow_forward_ios, size: 16),
+              ],
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      LocationDetailScreen(location: location),
+                ),
+              );
+            },
+          ),
+        );
       },
     );
   }
 
   IconData getCategoryIcon(String categoryName) {
     final categoryMap = {
-      'ATMs': HugeIcons.strokeRoundedAtm01,
-      'Pharmacies': HugeIcons.strokeRoundedMedicineBottle01,
-      'Groceries': HugeIcons.strokeRoundedShoppingBag02,
-      'Bars & Pubs': HugeIcons.strokeRoundedDrink,
-      'Shopping centers': HugeIcons.strokeRoundedShoppingCart01,
-      'Hostels': HugeIcons.strokeRoundedBedBunk,
-      'Gyms': HugeIcons.strokeRoundedDumbbell01,
-      'Churches': HugeIcons.strokeRoundedChurch,
-      'Printing Services': HugeIcons.strokeRoundedPrinter,
       'Classes': HugeIcons.strokeRoundedOnlineLearning01,
       'Offices': HugeIcons.strokeRoundedOffice,
+      'Hostels': HugeIcons.strokeRoundedBedBunk,
+      'Printing Services': HugeIcons.strokeRoundedPrinter,
+      'Churches': HugeIcons.strokeRoundedChurch,
+      'Pharmacies': HugeIcons.strokeRoundedMedicineBottle01,
+      'Shopping centers': HugeIcons.strokeRoundedShoppingCart01,
       'Food': HugeIcons.strokeRoundedRestaurant02,
       'Store': HugeIcons.strokeRoundedStore04,
+      'ATMs': HugeIcons.strokeRoundedAtm01,
+      'Groceries': HugeIcons.strokeRoundedShoppingBag02,
+      'Bars & Pubs': HugeIcons.strokeRoundedDrink,
+      'Gyms': HugeIcons.strokeRoundedDumbbell01,
     };
 
     return categoryMap[categoryName] ??
