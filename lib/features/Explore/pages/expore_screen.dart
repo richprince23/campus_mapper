@@ -2,18 +2,19 @@
 import 'dart:developer';
 
 import 'package:campus_mapper/core/api/route_service.dart';
+import 'package:campus_mapper/features/Explore/models/category_item.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
-
+import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:geolocator/geolocator.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -26,6 +27,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final _supabase = Supabase.instance.client;
   Location? selectedPlace;
   late GoogleMapController _mapController;
+
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  late SearchProvider _searchProvider;
 
   // Routing state
   bool _isLoadingRoute = false;
@@ -43,6 +48,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
       Provider.of<MapProvider>(context, listen: false).clearMarkers();
       _getUserLocation();
     });
+    _searchProvider = SearchProvider();
+    // if (widget.initialQuery != null) {
+    //   _searchController.text = widget.initialQuery!;
+
+    //   _searchProvider.search(widget.initialQuery!);
+    // }
+    _searchProvider.loadPopularSearches();
   }
 
   Future<void> _getUserLocation() async {
@@ -51,12 +63,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
       setState(() {
         _userPosition = position;
       });
-
       // Add user marker to the map
       context.read<MapProvider>().addUserLocationMarker(
             LatLng(position.latitude, position.longitude),
           );
-
       // Center map on user location
       _mapController.animateCamera(
         CameraUpdate.newLatLngZoom(
@@ -71,6 +81,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  /// get route
   Future<void> _getRoute() async {
     if (_userPosition == null || selectedPlace == null) {
       return;
@@ -90,7 +101,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       );
 
       final routeData = await RouteService.getRoute(origin, destination);
-
       // Safely extract numeric values
       double distance = 0.0;
       int duration = 0;
@@ -171,6 +181,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  /// get bounds
   LatLngBounds _getLatLngBounds(List<LatLng> points) {
     double minLat = points.first.latitude;
     double maxLat = points.first.latitude;
@@ -190,6 +201,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  /// start journey
   void _startJourney() {
     if (selectedPlace == null || !_routeAvailable) return;
 
@@ -220,7 +232,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Search Bar and Categories
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -235,7 +246,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       final response = await _supabase
                           .from('locations')
                           .select()
-                          .ilike('name', '%$pattern%');
+                          .ilike('name', '%$pattern%')
+                          .or('name.ilike.%$pattern%,category.ilike.%$pattern%,description.ilike.%$pattern%');
 
                       log(response.toString());
                       if (response.isEmpty) {
@@ -305,7 +317,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
-                          filled: true,
+                          // filled: true,
                           fillColor: Colors.grey[100],
                         ),
                       );
@@ -333,7 +345,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           // Map View
           Expanded(
             child: Stack(
-              fit: StackFit.loose,
+              // fit: StackFit.loose,
               children: [
                 GoogleMap(
                   initialCameraPosition: const CameraPosition(
@@ -407,6 +419,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 // Categories Panel (only show when no route is available and not loading)
                 if (!_routeAvailable && !_isLoadingRoute)
                   DraggableScrollableSheet(
+                    // expand: true,
                     snap: true,
                     snapSizes: const [0.3, 1],
                     initialChildSize: 0.3,
@@ -414,30 +427,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     maxChildSize: 1,
                     builder: (context, scrollController) {
                       return Container(
+                        padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
                           borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16)),
+                            top: Radius.circular(16),
+                          ),
                         ),
-                        child: ListView(
+                        child: SingleChildScrollView(
                           controller: scrollController,
-                          shrinkWrap: true,
-                          children: [
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.center,
-                              child: Container(
-                                width: 40,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildCategoryList(),
-                          ],
+                          child: _buildCategoryGrid(),
                         ),
                       );
                     },
@@ -482,51 +481,91 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildCategoryList() {
+  Widget _buildCategoryGrid() {
     final categories = [
-      ('ATMs', HugeIcons.strokeRoundedAtm01),
-      ('Pharmacies', HugeIcons.strokeRoundedMedicineBottle01),
-      ('Groceries', HugeIcons.strokeRoundedShoppingBag02),
-      ('Bars & Pubs', HugeIcons.strokeRoundedDrink),
-      ('Shopping centers', HugeIcons.strokeRoundedShoppingCart01),
-      ('Hostels', HugeIcons.strokeRoundedBedBunk),
-      ('Gyms', HugeIcons.strokeRoundedDumbbell01),
-      ('Churches', HugeIcons.strokeRoundedChurch),
-      ('Printing Services', HugeIcons.strokeRoundedPrinter),
+      CategoryItem(
+          'Food & Dining', HugeIcons.strokeRoundedRestaurant02, Colors.orange),
+      CategoryItem('Study Spaces', HugeIcons.strokeRoundedBook02, Colors.blue),
+      CategoryItem(
+          'Entertainment', HugeIcons.strokeRoundedParty, Colors.purple),
+      CategoryItem(
+          'Services', HugeIcons.strokeRoundedCustomerService, Colors.green),
+      CategoryItem(
+          'Sports & Fitness', HugeIcons.strokeRoundedDumbbell01, Colors.red),
+      CategoryItem(
+          'Shopping', HugeIcons.strokeRoundedShoppingBag02, Colors.pink),
+      CategoryItem('ATMs', HugeIcons.strokeRoundedAtm01, Colors.cyan),
+      CategoryItem(
+          'Pharmacies', HugeIcons.strokeRoundedMedicineBottle01, Colors.teal),
+      CategoryItem(
+          'Groceries', HugeIcons.strokeRoundedShoppingBag02, Colors.brown),
+      CategoryItem(
+          'Bars & Pubs', HugeIcons.strokeRoundedDrink, Colors.deepOrange),
+      CategoryItem('Shopping Centers', HugeIcons.strokeRoundedShoppingCart01,
+          Colors.amber),
+      CategoryItem('Hostels', HugeIcons.strokeRoundedBedBunk, Colors.indigo),
+      CategoryItem(
+          'Gyms', HugeIcons.strokeRoundedDumbbell01, Colors.lightGreen),
+      CategoryItem('Churches', HugeIcons.strokeRoundedChurch, Colors.lime),
+      CategoryItem(
+          'Printing Services', HugeIcons.strokeRoundedPrinter, Colors.grey),
+      CategoryItem('Classes', HugeIcons.strokeRoundedOnlineLearning01,
+          Colors.pinkAccent),
+      CategoryItem('Offices', HugeIcons.strokeRoundedOffice, Colors.deepPurple),
+      CategoryItem('Store', HugeIcons.strokeRoundedStore04, Colors.blueGrey),
     ];
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildTab('CATEGORIES', true),
-              _buildTab('FAVORITES', false),
-            ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 3,
+      ),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return GestureDetector(
+          onTap: () async {
+            // _searchController.text = category.name;
+            await _searchProvider.search(category.name);
+            print(category.name);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: category.color.withAlpha(26),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: category.color.withAlpha(77),
+              ),
+            ),
+            child: Row(
+              children: [
+                HugeIcon(
+                  icon: category.icon,
+                  color: category.color,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: category.color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        ...categories
-            .map((category) => _buildCategoryTile(category.$1, category.$2)),
-      ],
-    );
-  }
-
-  Widget _buildTab(String text, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.grey,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+        );
+      },
     );
   }
 

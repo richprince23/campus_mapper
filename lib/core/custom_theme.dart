@@ -46,6 +46,7 @@ abstract final class AppTheme {
   static ThemeData dark = FlexThemeData.dark(
     scheme: FlexScheme.greenM3,
     subThemesData: const FlexSubThemesData(
+      // inputDecoratorFillColor: Colors.black,
       interactionEffects: true,
       tintedDisabledControls: true,
       blendOnColors: true,
