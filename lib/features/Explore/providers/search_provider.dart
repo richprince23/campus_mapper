@@ -1,9 +1,11 @@
 import 'package:campus_mapper/features/Explore/models/location.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SearchProvider extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
+  // final _supabase = Supabase.instance.client;
+  final _firestore = FirebaseFirestore.instance;
   List<Location> _searchResults = [];
   List<String> _recentSearches = [];
   List<String> _popularSearches = [];
@@ -29,16 +31,14 @@ class SearchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _supabase
-          .from('locations')
-          .select()
-          // .or('name.ilike.%$query%,category.ilike.%$query%,description.ilike.%$query%')
-          .ilike('category', '%$query%')
-          .or('name.ilike.%$query%,category.ilike.%$query%,description.ilike.%$query%')
-          .limit(20);
+      final response = await _firestore
+          .collection('locations')
+          .where('name', isGreaterThanOrEqualTo: query)
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
 
       _searchResults =
-          (response as List).map((e) => Location.fromJson(e)).toList();
+          response.docs.map((doc) => Location.fromFirestore(doc)).toList();
 
       print(_searchResults);
       // Add to recent searches
