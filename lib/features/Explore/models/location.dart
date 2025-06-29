@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Location {
   final int? id;
   final String? name;
@@ -48,5 +50,19 @@ class Location {
       'category': category,
       'description': description,
     };
+  }
+
+  factory Location.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Location(
+      id: data['id'],
+      name: data['name'],
+      location: {
+        'latitude': (data['location']['latitude'] as num).toDouble(),
+        'longitude': (data['location']['longitude'] as num).toDouble(),
+      },
+      category: data['category'],
+      description: data['description'],
+    );
   }
 }
