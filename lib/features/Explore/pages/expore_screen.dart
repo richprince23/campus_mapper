@@ -1,5 +1,5 @@
 // lib/features/Explore/screens/explore_screen.dart
-import 'dart:developer';
+// import 'dart:developer';
 
 import 'package:campus_mapper/core/api/route_service.dart';
 import 'package:campus_mapper/features/Explore/models/category_item.dart';
@@ -16,7 +16,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -26,7 +26,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final _supabase = Supabase.instance.client;
+  // final _supabase = Supabase.instance.client;
   Location? selectedPlace;
   late GoogleMapController _mapController;
 
@@ -243,19 +243,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   TypeAheadField<Map<String, dynamic>>(
                     suggestionsCallback: (pattern) async {
                       if (pattern.length < 2) return [];
-
-                      // Use Supabase to search for locations
-                      final response = await _supabase
-                          .from('locations')
-                          .select()
-                          .ilike('name', '%$pattern%')
-                          .or('name.ilike.%$pattern%,category.ilike.%$pattern%,description.ilike.%$pattern%');
-
-                      log(response.toString());
-                      if (response.isEmpty) {
-                        log('Empty results');
-                        return [];
-                      }
+                      // Use Firestore to search for locations
+                      final response =
+                          await context.read<SearchProvider>().search(pattern);
 
                       return (response as List)
                           .map((item) => item as Map<String, dynamic>)
