@@ -1,25 +1,29 @@
 import 'package:campus_mapper/core/custom_theme.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
+import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:campus_mapper/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterForegroundTask.initCommunicationPort(); // init foreground task
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // use firebase emulator
-  await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-  await FirebaseStorage.instance.useStorageEmulator('localhost', 5001);
-  FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+  // if (kDebugMode) {
+  //   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+  //   await FirebaseStorage.instance.useStorageEmulator('localhost', 5001);
+  //   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+  //   log("Using emulator for Firebase services");
+  // }
 
   // Initialize Supabase with your project URL and anon key
   // await Supabase.initialize(
@@ -36,6 +40,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => MapProvider()),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),
       ],
       child: const MainApp(),
     ),
