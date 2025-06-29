@@ -51,3 +51,7 @@ app.*.map.json
 */*.xml
 **/*.swift
 **/*.json
+
+/# Firebase related
+*firebase_options.dart
+/lib/firebase_options.dart
