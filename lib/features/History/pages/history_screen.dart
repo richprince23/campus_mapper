@@ -25,7 +25,7 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
     super.initState();
     _searchProvider = SearchProvider();
     if (widget.initialQuery != null) {
-      _searchProvider.search(widget.initialQuery!);
+      _searchProvider.searchByName(widget.initialQuery!);
     }
     _searchProvider.loadPopularSearches();
   }
