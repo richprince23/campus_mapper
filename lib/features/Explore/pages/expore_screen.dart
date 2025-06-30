@@ -1,15 +1,19 @@
 // lib/features/Explore/screens/explore_screen.dart
 // import 'dart:developer';
 
+import 'dart:developer';
+
 import 'package:campus_mapper/core/api/route_service.dart';
 import 'package:campus_mapper/features/Explore/models/category_item.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
-import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
+// import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
+// import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
 import 'package:campus_mapper/features/History/pages/history_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
@@ -27,11 +31,10 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   // final _supabase = Supabase.instance.client;
+  final _firestore = FirebaseFirestore.instance;
   Location? selectedPlace;
   late GoogleMapController _mapController;
 
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
   late SearchProvider _searchProvider;
 
   // Routing state
@@ -50,13 +53,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
       Provider.of<MapProvider>(context, listen: false).clearMarkers();
       _getUserLocation();
     });
-    _searchProvider = SearchProvider();
+    // _searchProvider = SearchProvider();
     // if (widget.initialQuery != null) {
     //   _searchController.text = widget.initialQuery!;
 
     //   _searchProvider.search(widget.initialQuery!);
     // }
-    _searchProvider.loadPopularSearches();
+    // _searchProvider.loadPopularSearches();
+    _searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    // _searchProvider.checkCollectionExists();
+    // _searchProvider.debugFirestoreData();
+    // _searchProvider.loadPopularSearches();
   }
 
   Future<void> _getUserLocation() async {
@@ -83,106 +90,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  /// get route
-  Future<void> _getRoute() async {
-    if (_userPosition == null || selectedPlace == null) {
-      return;
-    }
-
-    setState(() {
-      _isLoadingRoute = true;
-      _routeAvailable = false;
-      _polylines = {}; // Clear existing polylines
-    });
-
-    try {
-      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
-      final destination = LatLng(
-        selectedPlace!.location['latitude'],
-        selectedPlace!.location['longitude'],
-      );
-
-      final routeData = await RouteService.getRoute(origin, destination);
-      // Safely extract numeric values
-      double distance = 0.0;
-      int duration = 0;
-
-      // Handle distance - ensure it's a number
-      final distanceValue = routeData['distance'];
-      if (distanceValue is double) {
-        distance = distanceValue;
-      } else if (distanceValue is int) {
-        distance = distanceValue.toDouble();
-      } else if (distanceValue is String) {
-        // Try to parse if it's a string
-        try {
-          distance =
-              double.parse(distanceValue.replaceAll(RegExp(r'[^0-9.]'), ''));
-        } catch (e) {
-          // Fallback calculation
-          distance = RouteService.calculateDistance(origin, destination) * 1000;
-        }
-      }
-
-      // Handle duration - ensure it's a number
-      final durationValue = routeData['duration'];
-      if (durationValue is int) {
-        duration = durationValue;
-      } else if (durationValue is double) {
-        duration = durationValue.round();
-      } else if (durationValue is String) {
-        // Try to parse if it's a string
-        try {
-          duration = int.parse(durationValue.replaceAll(RegExp(r'[^0-9]'), ''));
-        } catch (e) {
-          // Fallback: estimate based on distance
-          duration = (distance / 1.4).round();
-        }
-      }
-
-      // Create a polyline from the route
-      final polyline = Polyline(
-        polylineId: const PolylineId('route'),
-        points: routeData['polylineCoordinates'] ?? [origin, destination],
-        color: Theme.of(context).colorScheme.primary,
-        width: 5,
-        patterns: [], // Solid line
-      );
-
-      setState(() {
-        _polylines = {polyline};
-        _routeDistance = distance;
-        _routeDuration = duration;
-        _calories = RouteService.calculateCalories(_routeDistance);
-        _isLoadingRoute = false;
-        _routeAvailable = true;
-      });
-
-      print('Route calculated: Distance: ${distance}m, Duration: ${duration}s');
-
-      // Adjust camera to show the entire route
-      final polylineCoords =
-          routeData['polylineCoordinates'] ?? [origin, destination];
-      if (polylineCoords.isNotEmpty) {
-        _mapController.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            _getLatLngBounds(polylineCoords),
-            100, // padding
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error in _getRoute: $e');
-      setState(() {
-        _isLoadingRoute = false;
-        _routeAvailable = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calculating route: $e')),
-      );
-    }
-  }
-
   /// get bounds
   LatLngBounds _getLatLngBounds(List<LatLng> points) {
     double minLat = points.first.latitude;
@@ -203,7 +110,155 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  /// start journey
+  /// get route
+  Future<void> _getRoute() async {
+    print('=== _getRoute CALLED ===');
+
+    if (_userPosition == null) {
+      print('❌ User position is null');
+      return;
+    }
+
+    if (selectedPlace == null) {
+      print('❌ Selected place is null');
+      return;
+    }
+
+    print(
+        '✅ User position: ${_userPosition!.latitude}, ${_userPosition!.longitude}');
+    print('✅ Selected place: ${selectedPlace!.name}');
+    print(
+        '✅ Destination coords: ${selectedPlace!.location['latitude']}, ${selectedPlace!.location['longitude']}');
+
+    setState(() {
+      _isLoadingRoute = true;
+      _routeAvailable = false;
+      _polylines = {};
+    });
+
+    try {
+      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
+      final destination = LatLng(
+        selectedPlace!.location['latitude'] ?? 0.0,
+        selectedPlace!.location['longitude'] ?? 0.0,
+      );
+
+      print('🔄 Calling RouteService.getRoute...');
+      final routeData = await RouteService.getRoute(origin, destination);
+      print('✅ Route data received: $routeData');
+
+      double distance = 0.0;
+      int duration = 0;
+
+      final distanceValue = routeData['distance'];
+      if (distanceValue is double) {
+        distance = distanceValue;
+      } else if (distanceValue is int) {
+        distance = distanceValue.toDouble();
+      } else if (distanceValue is String) {
+        try {
+          distance =
+              double.parse(distanceValue.replaceAll(RegExp(r'[^0-9.]'), ''));
+        } catch (e) {
+          distance = RouteService.calculateDistance(origin, destination) * 1000;
+        }
+      }
+
+      final durationValue = routeData['duration'];
+      if (durationValue is int) {
+        duration = durationValue;
+      } else if (durationValue is double) {
+        duration = durationValue.round();
+      } else if (durationValue is String) {
+        try {
+          duration = int.parse(durationValue.replaceAll(RegExp(r'[^0-9]'), ''));
+        } catch (e) {
+          duration = (distance / 1.4).round();
+        }
+      }
+
+      print('📊 Parsed - Distance: ${distance}m, Duration: ${duration}s');
+
+      final polyline = Polyline(
+        polylineId: const PolylineId('route'),
+        points: routeData['polylineCoordinates'] ?? [origin, destination],
+        color: Theme.of(context).colorScheme.primary,
+        width: 5,
+        patterns: [],
+      );
+
+      setState(() {
+        _polylines = {polyline};
+        _routeDistance = distance;
+        _routeDuration = duration;
+        _calories = RouteService.calculateCalories(_routeDistance);
+        _isLoadingRoute = false;
+        _routeAvailable = true;
+      });
+
+      print('✅ Route available: $_routeAvailable');
+      print('✅ Route distance: $_routeDistance');
+      print('✅ Route duration: $_routeDuration');
+      print('✅ Calories: $_calories');
+
+      final polylineCoords =
+          routeData['polylineCoordinates'] ?? [origin, destination];
+      if (polylineCoords.isNotEmpty) {
+        _mapController.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            _getLatLngBounds(polylineCoords),
+            100,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error in _getRoute: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
+      setState(() {
+        _isLoadingRoute = false;
+        _routeAvailable = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error calculating route: $e')),
+      );
+    }
+  }
+
+// Also add debugging to _startJourney
+  // void _startJourney() {
+  //   print('=== _startJourney CALLED ===');
+  //   print('Selected place: $selectedPlace');
+  //   print('Route available: $_routeAvailable');
+
+  //   if (selectedPlace == null) {
+  //     print('❌ selectedPlace is null');
+  //     return;
+  //   }
+
+  //   if (!_routeAvailable) {
+  //     print('❌ route not available');
+  //     return;
+  //   }
+
+  //   print('✅ Starting journey to: ${selectedPlace!.name}');
+
+  //   Navigator.of(context).push(
+  //     MaterialPageRoute(
+  //       builder: (context) => ActiveJourneyScreen(
+  //         destinationName: selectedPlace!.name ?? 'Selected Location',
+  //         destinationLocation: LatLng(
+  //           selectedPlace!.location['latitude'] ?? 0.0,
+  //           selectedPlace!.location['longitude'] ?? 0.0,
+  //         ),
+  //         polylines: _polylines,
+  //         distance: _routeDistance,
+  //         calories: _calories,
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  /// start journey - FIXED VERSION
   void _startJourney() {
     if (selectedPlace == null || !_routeAvailable) return;
 
@@ -212,8 +267,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         builder: (context) => ActiveJourneyScreen(
           destinationName: selectedPlace!.name ?? 'Selected Location',
           destinationLocation: LatLng(
-            selectedPlace!.location['latitude'],
-            selectedPlace!.location['longitude'],
+            selectedPlace!.location['latitude'] ?? 0.0,
+            selectedPlace!.location['longitude'] ?? 0.0,
           ),
           polylines: _polylines,
           distance: _routeDistance,
@@ -242,14 +297,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   // Search Bar
                   TypeAheadField<Map<String, dynamic>>(
                     suggestionsCallback: (pattern) async {
-                      if (pattern.length < 2) return [];
-                      // Use Firestore to search for locations
-                      final response =
-                          await context.read<SearchProvider>().search(pattern);
+                      try {
+                        final response = await Provider.of<SearchProvider>(
+                          context,
+                          listen: false,
+                        ).searchByName(pattern);
 
-                      return (response as List)
-                          .map((item) => item as Map<String, dynamic>)
-                          .toList();
+                        return response;
+                      } catch (e) {
+                        print('Search error: $e');
+                        return [];
+                      }
                     },
                     itemBuilder: (context, Map<String, dynamic> suggestion) {
                       return ListTile(
@@ -266,6 +324,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     onSelected: (Map<String, dynamic> suggestion) {
                       setState(() {
                         selectedPlace = Location.fromJson(suggestion);
+                        log('Selected place: ${selectedPlace!.location['latitude']}, ${selectedPlace!.location['longitude']}');
                         // Clear previous markers and polylines
                         context.read<MapProvider>().clearMarkers();
                         _polylines = {};
@@ -285,8 +344,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         _mapController.animateCamera(
                           CameraUpdate.newLatLngZoom(
                             LatLng(
-                              selectedPlace!.location['latitude'],
-                              selectedPlace!.location['longitude'],
+                              selectedPlace!.location['latitude']!,
+                              selectedPlace!.location['longitude']!,
                             ),
                             17,
                           ),
@@ -375,6 +434,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
 
                 // Route panel (when route is available)
+
                 if (_routeAvailable &&
                     selectedPlace != null &&
                     !_isLoadingRoute)
@@ -516,7 +576,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         return GestureDetector(
           onTap: () async {
             // _searchController.text = category.name;
-            await _searchProvider.search(category.name);
+            await _searchProvider.searchByCategory(category.name);
             print(category.name);
             Navigator.push(
               context,
@@ -557,77 +617,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSearchResults(List<Location> results) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final location = results[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withAlpha(26),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                getCategoryIcon(location.category),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: Text(
-              location.name ?? 'Unknown',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(location.category),
-                if (location.description != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    location.description!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // if (location.rating != null) ...[
-                //   Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       const Icon(Icons.star, size: 16, color: Colors.amber),
-                //       const SizedBox(width: 2),
-                //       Text(location.rating!.toStringAsFixed(1)),
-                //     ],
-                //   ),
-                // ],
-                const SizedBox(height: 4),
-                const Icon(Icons.arrow_forward_ios, size: 16),
-              ],
-            ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      LocationDetailScreen(location: location),
-                ),
-              );
-            },
           ),
         );
       },
