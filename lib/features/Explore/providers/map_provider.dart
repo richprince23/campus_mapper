@@ -101,8 +101,8 @@ class MapProvider extends ChangeNotifier {
         Marker(
           markerId: MarkerId(data.id?.toString() ?? DateTime.now().toString()),
           position: LatLng(
-            data.location['latitude'],
-            data.location['longitude'],
+            data.location['latitude']!,
+            data.location['longitude']!,
           ),
           infoWindow: InfoWindow(
             title: data.name,
