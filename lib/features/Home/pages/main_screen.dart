@@ -22,22 +22,22 @@ class _MainScreenState extends State<MainScreen> {
 
   int _currentPage = 0;
 
-  void getCurrentLocation() {
-    RouteService.getCurrentLocation().then((value) {
-      if (value != null) {
-        // Handle the current location
-        print("Current Location: ${value.latitude}, ${value.longitude}");
-      } else {
-        print("Failed to get current location");
-      }
-    }).catchError((error) {
-      print("Error getting current location: $error");
-    });
-  }
+  // void getCurrentLocation() {
+  //   RouteService.getCurrentLocation().then((value) {
+  //     if (value != null) {
+  //       // Handle the current location
+  //       print("Current Location: ${value.latitude}, ${value.longitude}");
+  //     } else {
+  //       print("Failed to get current location");
+  //     }
+  //   }).catchError((error) {
+  //     print("Error getting current location: $error");
+  //   });
+  // }
 
   @override
   void initState() {
-    getCurrentLocation();
+    // getCurrentLocation();
     super.initState();
   }
 

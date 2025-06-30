@@ -6,7 +6,44 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapProvider extends ChangeNotifier {
   final Set<Marker> _markers = {};
+  // current user location
+  LatLng? _currentUserLocation;
 
+  LatLng? get currentUserLocation => _currentUserLocation;
+  // user location marker
+  Marker? _userLocationMarker;
+
+  MapProvider() {
+    // Initialize with user location marker if needed
+    _userLocationMarker = Marker(
+      markerId: const MarkerId('user_location'),
+      position: LatLng(0, 0), // Default position, will be updated later
+      infoWindow: const InfoWindow(title: 'Your Location'),
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      zIndex: 2, // Higher zIndex to appear above other markers
+    );
+  }
+
+  Marker? get userLocationMarker => _userLocationMarker;
+
+  /// Set current user location and update the user location marker
+  set currentUserLocation(LatLng? position) {
+    _currentUserLocation = position;
+    if (position != null) {
+      _userLocationMarker = Marker(
+        markerId: const MarkerId('user_location'),
+        position: position,
+        infoWindow: const InfoWindow(title: 'Your Location'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        zIndex: 2, // Higher zIndex to appear above other markers
+      );
+    } else {
+      _userLocationMarker = null; // Clear marker if position is null
+    }
+    notifyListeners();
+  }
+
+  /// Get custom icon based on category
   Future<BitmapDescriptor> getCustomIcon(String category) async {
     return await BitmapDescriptor.asset(
       const ImageConfiguration(size: Size(24, 24)), // Set size
@@ -14,6 +51,7 @@ class MapProvider extends ChangeNotifier {
     );
   }
 
+  /// Get custom icon color based on category
   Future<BitmapDescriptor> getCustomIconColor(String category) async {
     try {
       return BitmapDescriptor.defaultMarkerWithHue(_getCategoryHue(category));
@@ -76,24 +114,6 @@ class MapProvider extends ChangeNotifier {
         return 'assets/markers/hospital.png';
     }
   }
-
-  // void addMarker(Location data) async {
-  //   _markers.add(
-  //     Marker(
-  //       markerId: MarkerId(
-  //         data.id.toString(),
-  //       ),
-  //       position: LatLng(
-  //         data.location['latitude'],
-  //         data.location['longitude'],
-  //       ),
-  //       infoWindow: InfoWindow(title: data.name, snippet: data.description),
-  //       draggable: false,
-  //       icon: await getCustomIcon(data.category),
-  //     ),
-  //   );
-  //   notifyListeners();
-  // }
 
   void addMarker(Location data) async {
     try {

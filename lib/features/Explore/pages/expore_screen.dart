@@ -29,12 +29,14 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends State<ExploreScreen>
+    with WidgetsBindingObserver {
   // final _supabase = Supabase.instance.client;
   final _firestore = FirebaseFirestore.instance;
   Location? selectedPlace;
   late GoogleMapController _mapController;
-
+  bool _mapCreated = false;
+  bool _isLocationInitialized = false;
   late SearchProvider _searchProvider;
 
   // Routing state
@@ -53,234 +55,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
       Provider.of<MapProvider>(context, listen: false).clearMarkers();
       _getUserLocation();
     });
-    // _searchProvider = SearchProvider();
-    // if (widget.initialQuery != null) {
-    //   _searchController.text = widget.initialQuery!;
+    WidgetsBinding.instance.addObserver(this);
 
-    //   _searchProvider.search(widget.initialQuery!);
-    // }
+    _initializeScreen();
     // _searchProvider.loadPopularSearches();
     _searchProvider = Provider.of<SearchProvider>(context, listen: false);
-    // _searchProvider.checkCollectionExists();
-    // _searchProvider.debugFirestoreData();
-    // _searchProvider.loadPopularSearches();
   }
 
-  Future<void> _getUserLocation() async {
-    try {
-      final position = await RouteService.getCurrentLocation();
-      setState(() {
-        _userPosition = position;
-      });
-      // Add user marker to the map
-      context.read<MapProvider>().addUserLocationMarker(
-            LatLng(position.latitude, position.longitude),
-          );
-      // Center map on user location
-      _mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude),
-          15,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error getting location: $e')),
-      );
-    }
+  Future<void> _initializeScreen() async {
+    await Future.delayed(Duration(milliseconds: 500));
+    Provider.of<MapProvider>(context, listen: false).clearMarkers();
+    _searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    await _getUserLocationWithRetry();
   }
 
-  /// get bounds
-  LatLngBounds _getLatLngBounds(List<LatLng> points) {
-    double minLat = points.first.latitude;
-    double maxLat = points.first.latitude;
-    double minLng = points.first.longitude;
-    double maxLng = points.first.longitude;
-
-    for (var point in points) {
-      if (point.latitude < minLat) minLat = point.latitude;
-      if (point.latitude > maxLat) maxLat = point.latitude;
-      if (point.longitude < minLng) minLng = point.longitude;
-      if (point.longitude > maxLng) maxLng = point.longitude;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isLocationInitialized) {
+      _getUserLocationWithRetry();
     }
-
-    return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-  }
-
-  /// get route
-  Future<void> _getRoute() async {
-    print('=== _getRoute CALLED ===');
-
-    if (_userPosition == null) {
-      print('❌ User position is null');
-      return;
-    }
-
-    if (selectedPlace == null) {
-      print('❌ Selected place is null');
-      return;
-    }
-
-    print(
-        '✅ User position: ${_userPosition!.latitude}, ${_userPosition!.longitude}');
-    print('✅ Selected place: ${selectedPlace!.name}');
-    print(
-        '✅ Destination coords: ${selectedPlace!.location['latitude']}, ${selectedPlace!.location['longitude']}');
-
-    setState(() {
-      _isLoadingRoute = true;
-      _routeAvailable = false;
-      _polylines = {};
-    });
-
-    try {
-      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
-      final destination = LatLng(
-        selectedPlace!.location['latitude'] ?? 0.0,
-        selectedPlace!.location['longitude'] ?? 0.0,
-      );
-
-      print('🔄 Calling RouteService.getRoute...');
-      final routeData = await RouteService.getRoute(origin, destination);
-      print('✅ Route data received: $routeData');
-
-      double distance = 0.0;
-      int duration = 0;
-
-      final distanceValue = routeData['distance'];
-      if (distanceValue is double) {
-        distance = distanceValue;
-      } else if (distanceValue is int) {
-        distance = distanceValue.toDouble();
-      } else if (distanceValue is String) {
-        try {
-          distance =
-              double.parse(distanceValue.replaceAll(RegExp(r'[^0-9.]'), ''));
-        } catch (e) {
-          distance = RouteService.calculateDistance(origin, destination) * 1000;
-        }
-      }
-
-      final durationValue = routeData['duration'];
-      if (durationValue is int) {
-        duration = durationValue;
-      } else if (durationValue is double) {
-        duration = durationValue.round();
-      } else if (durationValue is String) {
-        try {
-          duration = int.parse(durationValue.replaceAll(RegExp(r'[^0-9]'), ''));
-        } catch (e) {
-          duration = (distance / 1.4).round();
-        }
-      }
-
-      print('📊 Parsed - Distance: ${distance}m, Duration: ${duration}s');
-
-      final polyline = Polyline(
-        polylineId: const PolylineId('route'),
-        points: routeData['polylineCoordinates'] ?? [origin, destination],
-        color: Theme.of(context).colorScheme.primary,
-        width: 5,
-        patterns: [],
-      );
-
-      setState(() {
-        _polylines = {polyline};
-        _routeDistance = distance;
-        _routeDuration = duration;
-        _calories = RouteService.calculateCalories(_routeDistance);
-        _isLoadingRoute = false;
-        _routeAvailable = true;
-      });
-
-      print('✅ Route available: $_routeAvailable');
-      print('✅ Route distance: $_routeDistance');
-      print('✅ Route duration: $_routeDuration');
-      print('✅ Calories: $_calories');
-
-      final polylineCoords =
-          routeData['polylineCoordinates'] ?? [origin, destination];
-      if (polylineCoords.isNotEmpty) {
-        _mapController.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            _getLatLngBounds(polylineCoords),
-            100,
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Error in _getRoute: $e');
-      print('❌ Stack trace: ${StackTrace.current}');
-      setState(() {
-        _isLoadingRoute = false;
-        _routeAvailable = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calculating route: $e')),
-      );
-    }
-  }
-
-// Also add debugging to _startJourney
-  // void _startJourney() {
-  //   print('=== _startJourney CALLED ===');
-  //   print('Selected place: $selectedPlace');
-  //   print('Route available: $_routeAvailable');
-
-  //   if (selectedPlace == null) {
-  //     print('❌ selectedPlace is null');
-  //     return;
-  //   }
-
-  //   if (!_routeAvailable) {
-  //     print('❌ route not available');
-  //     return;
-  //   }
-
-  //   print('✅ Starting journey to: ${selectedPlace!.name}');
-
-  //   Navigator.of(context).push(
-  //     MaterialPageRoute(
-  //       builder: (context) => ActiveJourneyScreen(
-  //         destinationName: selectedPlace!.name ?? 'Selected Location',
-  //         destinationLocation: LatLng(
-  //           selectedPlace!.location['latitude'] ?? 0.0,
-  //           selectedPlace!.location['longitude'] ?? 0.0,
-  //         ),
-  //         polylines: _polylines,
-  //         distance: _routeDistance,
-  //         calories: _calories,
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  /// start journey - FIXED VERSION
-  void _startJourney() {
-    if (selectedPlace == null || !_routeAvailable) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ActiveJourneyScreen(
-          destinationName: selectedPlace!.name ?? 'Selected Location',
-          destinationLocation: LatLng(
-            selectedPlace!.location['latitude'] ?? 0.0,
-            selectedPlace!.location['longitude'] ?? 0.0,
-          ),
-          polylines: _polylines,
-          distance: _routeDistance,
-          calories: _calories,
-        ),
-      ),
-    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _mapController.dispose();
+    // _mapController.dispose();
+    _mapCreated = false;
     super.dispose();
   }
 
@@ -642,5 +443,285 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return categoryMap[categoryName] ??
         Icons.help_outline; // Default icon if not found
+  }
+
+  Future<void> _getUserLocation() async {
+    try {
+      final position = await RouteService.getCurrentLocation();
+      if (position == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to get user location')),
+        );
+        return;
+      }
+      setState(() {
+        _userPosition = position;
+        Provider.of<MapProvider>(context, listen: false).currentUserLocation =
+            LatLng(position.latitude, position.longitude);
+      });
+      // Add user marker to the map
+      context.read<MapProvider>().addUserLocationMarker(
+            LatLng(position.latitude, position.longitude),
+          );
+      // Center map on user location
+      _mapController.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(position.latitude, position.longitude),
+          15,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error getting location: $e')),
+      );
+    }
+  }
+
+  /// get bounds
+  LatLngBounds _getLatLngBounds(List<LatLng> points) {
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (var point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
+
+  /// get route
+  Future<void> _getRoute() async {
+    print('=== _getRoute CALLED ===');
+
+    if (_userPosition == null) {
+      print('❌ User position is null');
+      return;
+    }
+
+    if (selectedPlace == null) {
+      print('❌ Selected place is null');
+      return;
+    }
+
+    print(
+        '✅ User position: ${_userPosition!.latitude}, ${_userPosition!.longitude}');
+    print('✅ Selected place: ${selectedPlace!.name}');
+    print(
+        '✅ Destination coords: ${selectedPlace!.location['latitude']}, ${selectedPlace!.location['longitude']}');
+
+    setState(() {
+      _isLoadingRoute = true;
+      _routeAvailable = false;
+      _polylines = {};
+    });
+
+    try {
+      final origin = LatLng(_userPosition!.latitude, _userPosition!.longitude);
+      final destination = LatLng(
+        selectedPlace!.location['latitude'] ?? 0.0,
+        selectedPlace!.location['longitude'] ?? 0.0,
+      );
+
+      print('🔄 Calling RouteService.getRoute...');
+      final routeData = await RouteService.getRoute(origin, destination);
+      print('✅ Route data received: $routeData');
+
+      double distance = 0.0;
+      int duration = 0;
+
+      final distanceValue = routeData['distance'];
+      if (distanceValue is double) {
+        distance = distanceValue;
+      } else if (distanceValue is int) {
+        distance = distanceValue.toDouble();
+      } else if (distanceValue is String) {
+        try {
+          distance =
+              double.parse(distanceValue.replaceAll(RegExp(r'[^0-9.]'), ''));
+        } catch (e) {
+          distance = RouteService.calculateDistance(origin, destination) * 1000;
+        }
+      }
+
+      final durationValue = routeData['duration'];
+      if (durationValue is int) {
+        duration = durationValue;
+      } else if (durationValue is double) {
+        duration = durationValue.round();
+      } else if (durationValue is String) {
+        try {
+          duration = int.parse(durationValue.replaceAll(RegExp(r'[^0-9]'), ''));
+        } catch (e) {
+          duration = (distance / 1.4).round();
+        }
+      }
+
+      print('📊 Parsed - Distance: ${distance}m, Duration: ${duration}s');
+
+      final polyline = Polyline(
+        polylineId: const PolylineId('route'),
+        points: routeData['polylineCoordinates'] ?? [origin, destination],
+        color: Theme.of(context).colorScheme.primary,
+        width: 5,
+        patterns: [],
+      );
+
+      setState(() {
+        _polylines = {polyline};
+        _routeDistance = distance;
+        _routeDuration = duration;
+        _calories = RouteService.calculateCalories(_routeDistance);
+        _isLoadingRoute = false;
+        _routeAvailable = true;
+      });
+
+      print('✅ Route available: $_routeAvailable');
+      print('✅ Route distance: $_routeDistance');
+      print('✅ Route duration: $_routeDuration');
+      print('✅ Calories: $_calories');
+
+      final polylineCoords =
+          routeData['polylineCoordinates'] ?? [origin, destination];
+      if (polylineCoords.isNotEmpty) {
+        _mapController.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            _getLatLngBounds(polylineCoords),
+            100,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error in _getRoute: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
+      setState(() {
+        _isLoadingRoute = false;
+        _routeAvailable = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error calculating route: $e')),
+      );
+    }
+  }
+
+  /// start journey - FIXED VERSION
+  void _startJourney() {
+    if (selectedPlace == null || !_routeAvailable) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActiveJourneyScreen(
+          destinationName: selectedPlace!.name ?? 'Selected Location',
+          destinationLocation: LatLng(
+            selectedPlace!.location['latitude'] ?? 0.0,
+            selectedPlace!.location['longitude'] ?? 0.0,
+          ),
+          polylines: _polylines,
+          distance: _routeDistance,
+          calories: _calories,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _getUserLocationWithRetry() async {
+    for (int i = 0; i < 3; i++) {
+      try {
+        await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
+
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          if (i == 2) {
+            _showLocationError('Location services disabled');
+          }
+          continue;
+        }
+
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          if (i == 2) {
+            _showLocationError('Location permission required');
+          }
+          continue;
+        }
+
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 10, // Update every 10 meters
+              timeLimit: Duration(seconds: 30)),
+          // desiredAccuracy: LocationAccuracy.high,
+          // timeLimit: Duration(seconds: 30),
+        ).timeout(Duration(seconds: 100));
+
+        if (mounted) {
+          setState(() {
+            _userPosition = position;
+            _isLocationInitialized = true;
+          });
+
+          context.read<MapProvider>().addUserLocationMarker(
+                LatLng(position.latitude, position.longitude),
+              );
+
+          _animateCameraWhenReady(
+            LatLng(position.latitude, position.longitude),
+            15,
+          );
+
+          print(
+              'Location obtained: ${position.latitude}, ${position.longitude}');
+          return;
+        }
+      } catch (e) {
+        print('Location attempt ${i + 1} failed: $e');
+        if (i == 2) {
+          _showLocationError('Location unavailable');
+        }
+      }
+    }
+  }
+
+  void _showLocationError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _getUserLocationWithRetry(),
+          ),
+        ),
+      );
+    }
+  }
+
+//
+  Future<void> _animateCameraWhenReady(LatLng target, double zoom) async {
+    for (int i = 0; i < 10; i++) {
+      if (_mapController != null && _mapCreated) {
+        try {
+          await _mapController.animateCamera(
+            CameraUpdate.newLatLngZoom(target, zoom),
+          );
+          return;
+        } catch (e) {
+          print('Camera animation failed: $e');
+        }
+      }
+      await Future.delayed(Duration(milliseconds: 200));
+    }
   }
 }

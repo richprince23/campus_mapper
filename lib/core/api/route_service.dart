@@ -129,12 +129,10 @@
 
 // Debug and fix route service
 
-import 'dart:convert';
 import 'dart:math' show cos, sqrt, asin;
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RouteService {
   static const String _apiKey = "YOUR_GOOGLE_MAPS_API_KEY";
