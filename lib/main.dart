@@ -25,17 +25,7 @@ void main() async {
   //   log("Using emulator for Firebase services");
   // }
 
-  // Initialize Supabase with your project URL and anon key
-  // await Supabase.initialize(
-  //   url: "https://ldwnikdoqijibgkwebgj.supabase.co",
-  //   anonKey:
-  //       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkd25pa2RvcWlqaWJna3dlYmdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MzcwMzMsImV4cCI6MjA2MTMxMzAzM30.vH0YTnKzE3x8tFJ4odjxrLG43HU-cfWRMzSGieylbnI",
-  //   authOptions: FlutterAuthClientOptions(
-  //     autoRefreshToken: true,
-  //     localStorage:
-  //         SharedPreferencesLocalStorage(persistSessionKey: "_auth_token"),
-  //   ),
-  // );
+  
   runApp(
     MultiProvider(
       providers: [
