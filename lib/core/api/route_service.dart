@@ -130,12 +130,14 @@
 // Debug and fix route service
 
 import 'dart:math' show cos, sqrt, asin;
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:campus_mapper/env.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RouteService {
-  static const String _apiKey = "YOUR_GOOGLE_MAPS_API_KEY";
+  static const String _apiKey = EnvKeys.mapsKey; // Replace with your API key
 
   static Future<Position> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -166,40 +168,40 @@ class RouteService {
 
     try {
       // Always use fallback for now to test
-      print('Using fallback route calculation');
-      return _getDirectRoute(origin, destination);
+      // print('Using fallback route calculation');
+      // return _getDirectRoute(origin, destination);
 
       // Uncomment when API key is available
-      /*
+
       if (_apiKey == "YOUR_GOOGLE_MAPS_API_KEY") {
         print('No API key, using direct route');
         return _getDirectRoute(origin, destination);
       }
 
       print('Using Google Directions API');
-      final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/directions/json?'
-        'origin=${origin.latitude},${origin.longitude}'
-        '&destination=${destination.latitude},${destination.longitude}'
-        '&mode=walking'
-        '&key=$_apiKey'
-      );
+      final url =
+          Uri.parse('https://maps.googleapis.com/maps/api/directions/json?'
+              'origin=${origin.latitude},${origin.longitude}'
+              '&destination=${destination.latitude},${destination.longitude}'
+              '&mode=walking'
+              '&key=$_apiKey');
 
       final response = await http.get(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
           final route = data['routes'][0];
           final leg = route['legs'][0];
-          
-          final polylinePoints = _decodePolyline(route['overview_polyline']['points']);
+
+          final polylinePoints =
+              _decodePolyline(route['overview_polyline']['points']);
           final distanceInMeters = leg['distance']['value'].toDouble();
           final durationInSeconds = leg['duration']['value'];
-          
+
           print('API route: ${distanceInMeters}m, ${durationInSeconds}s');
-          
+
           return {
             'polylineCoordinates': polylinePoints,
             'distance': distanceInMeters,
@@ -211,9 +213,8 @@ class RouteService {
       } else {
         print('HTTP error: ${response.statusCode}');
       }
-      
+
       return _getDirectRoute(origin, destination);
-      */
     } catch (e) {
       print('Route error: $e');
       return _getDirectRoute(origin, destination);
