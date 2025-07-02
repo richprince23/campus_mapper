@@ -1,4 +1,3 @@
-import 'package:campus_mapper/core/api/route_service.dart';
 import 'package:campus_mapper/core/components/navbar.dart';
 import 'package:campus_mapper/features/Explore/pages/expore_screen.dart';
 import 'package:campus_mapper/features/History/pages/history_screen.dart';
