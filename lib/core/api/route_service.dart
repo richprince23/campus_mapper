@@ -133,31 +133,20 @@ import 'dart:math' show cos, sqrt, asin;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:campus_mapper/env.dart';
+import 'package:campus_mapper/core/services/location_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RouteService {
   static const String _apiKey = EnvKeys.mapsKey; // Replace with your API key
 
-  static Future<Position> getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
+  static Future<Position?> getCurrentLocation() async {
+    try {
+      return await LocationManager.getCurrentLocation();
+    } catch (e) {
+      print('RouteService - Error getting current location: $e');
+      return null;
     }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception('Location permissions are permanently denied.');
-    }
-
-    return await Geolocator.getCurrentPosition();
   }
 
   static Future<Map<String, dynamic>> getRoute(

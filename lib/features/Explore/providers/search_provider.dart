@@ -24,18 +24,18 @@ class SearchProvider extends ChangeNotifier {
 
   final Map<String, List<String>> _categoryMappings = {
     'Classes': ['Classes', 'Class', 'Lecture Halls', 'Academic'],
-    'Food & Dining': ['Food', 'Restaurant', 'Dining', 'Cafeteria', 'Canteen'],
-    'ATMs': ['ATM', 'ATMs', 'Bank'],
-    'Hostels': ['Hostel', 'Hostels', 'Accommodation', 'Residence'],
+    'Study Spaces': ['Library', 'Study', 'Reading Room', 'Study Spaces'],
     'Offices': ['Office', 'Offices', 'Administration'],
-    'Pharmacies': ['Pharmacy', 'Pharmacies', 'Medical', 'Health'],
-    'Shopping Centers': ['Shopping', 'Store', 'Shop', 'Market'],
+    'Hostels': ['Hostel', 'Hostels', 'Accommodation', 'Residence'],
+    'Printing Services': ['Printing', 'Print', 'Photocopy', 'Printing Services'],
+    'Food & Dining': ['Food', 'Restaurant', 'Dining', 'Cafeteria', 'Canteen', 'Food & Dining'],
     'Churches': ['Church', 'Churches', 'Religious', 'Chapel'],
-    'Gyms': ['Gym', 'Gyms', 'Fitness', 'Sports'],
-    'Study Spaces': ['Library', 'Study', 'Reading Room'],
-    'Printing Services': ['Printing', 'Print', 'Photocopy'],
+    'Pharmacies': ['Pharmacy', 'Pharmacies', 'Medical', 'Health'],
     'Entertainment': ['Entertainment', 'Recreation', 'Fun'],
-    'Sports & Fitness': ['Sports', 'Fitness', 'Recreation', 'Athletic'],
+    'Sports & Fitness': ['Sports', 'Fitness', 'Recreation', 'Athletic', 'Sports & Fitness', 'Gym', 'Gyms'],
+    'Shopping Centers': ['Shopping', 'Store', 'Shop', 'Market', 'Shopping Centers'],
+    'ATMs': ['ATM', 'ATMs', 'Bank'],
+    'Store': ['Store', 'Shop', 'Shopping'],
     'Services': ['Service', 'Services', 'Utility'],
   };
 

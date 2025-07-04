@@ -4,15 +4,14 @@
 import 'dart:developer';
 
 import 'package:campus_mapper/core/api/route_service.dart';
+import 'package:campus_mapper/core/services/location_manager.dart';
 import 'package:campus_mapper/features/Explore/models/category_item.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
-// import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
-// import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
+import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart' as explore_search;
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
-import 'package:campus_mapper/features/History/pages/history_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
@@ -314,23 +313,69 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Widget _buildCategoryItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(8),
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push<Location>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => explore_search.EnhancedSearchScreen(
+              initialQuery: label,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.onPrimary,
+        );
+        
+        if (result != null) {
+          setState(() {
+            selectedPlace = result;
+            // Clear previous markers and polylines
+            context.read<MapProvider>().clearMarkers();
+            _polylines = {};
+            _routeAvailable = false;
+
+            // Add the selected location marker
+            context.read<MapProvider>().addMarker(selectedPlace!);
+
+            // Add user location marker back
+            if (_userPosition != null) {
+              context.read<MapProvider>().addUserLocationMarker(
+                    LatLng(_userPosition!.latitude,
+                        _userPosition!.longitude),
+                  );
+            }
+
+            _mapController.animateCamera(
+              CameraUpdate.newLatLngZoom(
+                LatLng(
+                  selectedPlace!.location['latitude']!,
+                  selectedPlace!.location['longitude']!,
+                ),
+                17,
+              ),
+            );
+
+            // Calculate route when a place is selected
+            _getRoute();
+          });
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -376,17 +421,48 @@ class _ExploreScreenState extends State<ExploreScreen>
         final category = categories[index];
         return GestureDetector(
           onTap: () async {
-            // _searchController.text = category.name;
-            await _searchProvider.searchByCategory(category.name);
-            print(category.name);
-            Navigator.push(
+            final result = await Navigator.push<Location>(
               context,
               MaterialPageRoute(
-                builder: (context) => EnhancedSearchScreen(
+                builder: (context) => explore_search.EnhancedSearchScreen(
                   initialQuery: category.name,
                 ),
               ),
             );
+            
+            if (result != null) {
+              setState(() {
+                selectedPlace = result;
+                // Clear previous markers and polylines
+                context.read<MapProvider>().clearMarkers();
+                _polylines = {};
+                _routeAvailable = false;
+
+                // Add the selected location marker
+                context.read<MapProvider>().addMarker(selectedPlace!);
+
+                // Add user location marker back
+                if (_userPosition != null) {
+                  context.read<MapProvider>().addUserLocationMarker(
+                        LatLng(_userPosition!.latitude,
+                            _userPosition!.longitude),
+                      );
+                }
+
+                _mapController.animateCamera(
+                  CameraUpdate.newLatLngZoom(
+                    LatLng(
+                      selectedPlace!.location['latitude']!,
+                      selectedPlace!.location['longitude']!,
+                    ),
+                    17,
+                  ),
+                );
+
+                // Calculate route when a place is selected
+                _getRoute();
+              });
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -447,15 +523,14 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   Future<void> _getUserLocation() async {
     try {
-      final position = await RouteService.getCurrentLocation();
+      final position = await LocationManager.getCurrentLocation();
       if (position == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to get user location')),
-        );
+        _showLocationError('Unable to get user location');
         return;
       }
       setState(() {
         _userPosition = position;
+        _isLocationInitialized = true;
         Provider.of<MapProvider>(context, listen: false).currentUserLocation =
             LatLng(position.latitude, position.longitude);
       });
@@ -464,16 +539,13 @@ class _ExploreScreenState extends State<ExploreScreen>
             LatLng(position.latitude, position.longitude),
           );
       // Center map on user location
-      _mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude),
-          15,
-        ),
+      _animateCameraWhenReady(
+        LatLng(position.latitude, position.longitude),
+        15,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error getting location: $e')),
-      );
+      print('Error getting location: $e');
+      _showLocationError('Error getting location: $e');
     }
   }
 
@@ -636,7 +708,8 @@ class _ExploreScreenState extends State<ExploreScreen>
       try {
         await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
 
-        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        // Check if location services are enabled
+        bool serviceEnabled = await LocationManager.isLocationServiceEnabled();
         if (!serviceEnabled) {
           if (i == 2) {
             _showLocationError('Location services disabled');
@@ -644,33 +717,29 @@ class _ExploreScreenState extends State<ExploreScreen>
           continue;
         }
 
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        }
-
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
+        // Check permission without requesting it first
+        bool hasPermission = await LocationManager.checkLocationPermission();
+        if (!hasPermission) {
           if (i == 2) {
             _showLocationError('Location permission required');
           }
           continue;
         }
 
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(
-              accuracy: LocationAccuracy.high,
-              distanceFilter: 10, // Update every 10 meters
-              timeLimit: Duration(seconds: 30)),
-          // desiredAccuracy: LocationAccuracy.high,
-          // timeLimit: Duration(seconds: 30),
-        ).timeout(Duration(seconds: 100));
+        // Try to get location using the centralized manager
+        final position = await LocationManager.getCurrentLocation(
+          useCache: false,
+          timeout: Duration(seconds: 30),
+        );
 
-        if (mounted) {
+        if (position != null && mounted) {
           setState(() {
             _userPosition = position;
             _isLocationInitialized = true;
           });
+
+          Provider.of<MapProvider>(context, listen: false).currentUserLocation =
+              LatLng(position.latitude, position.longitude);
 
           context.read<MapProvider>().addUserLocationMarker(
                 LatLng(position.latitude, position.longitude),
@@ -687,8 +756,12 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
       } catch (e) {
         print('Location attempt ${i + 1} failed: $e');
+        if (e.toString().contains('PERMISSION_REQUEST_IN_PROGRESS')) {
+          // Wait longer if permission request is in progress
+          await Future.delayed(Duration(seconds: 2));
+        }
         if (i == 2) {
-          _showLocationError('Location unavailable');
+          _showLocationError('Location unavailable: ${e.toString()}');
         }
       }
     }
