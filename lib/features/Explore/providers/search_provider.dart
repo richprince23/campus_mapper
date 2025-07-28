@@ -27,13 +27,39 @@ class SearchProvider extends ChangeNotifier {
     'Study Spaces': ['Library', 'Study', 'Reading Room', 'Study Spaces'],
     'Offices': ['Office', 'Offices', 'Administration'],
     'Hostels': ['Hostel', 'Hostels', 'Accommodation', 'Residence'],
-    'Printing Services': ['Printing', 'Print', 'Photocopy', 'Printing Services'],
-    'Food & Dining': ['Food', 'Restaurant', 'Dining', 'Cafeteria', 'Canteen', 'Food & Dining'],
+    'Printing Services': [
+      'Printing',
+      'Print',
+      'Photocopy',
+      'Printing Services'
+    ],
+    'Food & Dining': [
+      'Food',
+      'Restaurant',
+      'Dining',
+      'Cafeteria',
+      'Canteen',
+      'Food & Dining'
+    ],
     'Churches': ['Church', 'Churches', 'Religious', 'Chapel'],
     'Pharmacies': ['Pharmacy', 'Pharmacies', 'Medical', 'Health'],
     'Entertainment': ['Entertainment', 'Recreation', 'Fun'],
-    'Sports & Fitness': ['Sports', 'Fitness', 'Recreation', 'Athletic', 'Sports & Fitness', 'Gym', 'Gyms'],
-    'Shopping Centers': ['Shopping', 'Store', 'Shop', 'Market', 'Shopping Centers'],
+    'Sports & Fitness': [
+      'Sports',
+      'Fitness',
+      'Recreation',
+      'Athletic',
+      'Sports & Fitness',
+      'Gym',
+      'Gyms'
+    ],
+    'Shopping Centers': [
+      'Shopping',
+      'Store',
+      'Shop',
+      'Market',
+      'Shopping Centers'
+    ],
     'ATMs': ['ATM', 'ATMs', 'Bank'],
     'Store': ['Store', 'Shop', 'Shopping'],
     'Services': ['Service', 'Services', 'Utility'],
