@@ -14,27 +14,27 @@ class UserHistoryService {
   Future<String?> get _userId async {
     if (_cachedUserId != null) return _cachedUserId;
     
-    // Try to get current authenticated user
+    // Try to get current authenticated user first
     final currentUser = _auth.currentUser;
     if (currentUser != null) {
       _cachedUserId = currentUser.uid;
+      log('Using authenticated user ID: $_cachedUserId');
       return _cachedUserId;
     }
     
-    // Skip anonymous authentication and go directly to device-based ID
-    // This avoids the admin-restricted-operation error
-    log('Using device-based user ID (anonymous auth disabled)');
+    // Fall back to device-based ID for guest users
+    log('No authenticated user, using device-based user ID');
     
     final prefs = await SharedPreferences.getInstance();
     String? deviceUserId = prefs.getString('device_user_id');
     
     if (deviceUserId == null) {
       // Create a unique device-based user ID
-      deviceUserId = 'device_${DateTime.now().millisecondsSinceEpoch}_${_generateRandomString(8)}';
+      deviceUserId = 'guest_${DateTime.now().millisecondsSinceEpoch}_${_generateRandomString(8)}';
       await prefs.setString('device_user_id', deviceUserId);
-      log('Created new device user ID: $deviceUserId');
+      log('Created new guest user ID: $deviceUserId');
     } else {
-      log('Using existing device user ID: $deviceUserId');
+      log('Using existing guest user ID: $deviceUserId');
     }
     
     _cachedUserId = deviceUserId;

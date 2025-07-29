@@ -2,6 +2,7 @@ import 'package:campus_mapper/core/components/navbar.dart';
 import 'package:campus_mapper/features/Explore/pages/expore_screen.dart';
 import 'package:campus_mapper/features/History/pages/history_screen.dart';
 import 'package:campus_mapper/features/Home/pages/home_screen.dart';
+import 'package:campus_mapper/features/Home/pages/profile_screen.dart';
 import 'package:flutter/material.dart';
 
 class MainScreen extends StatefulWidget {
@@ -13,10 +14,10 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final kPages = [
-    HomeScreen(),
-    ExploreScreen(),
-    HistoryScreen(),
-    Container()
+    const HomeScreen(),
+    const ExploreScreen(),
+    const HistoryScreen(),
+    const ProfileScreen(),
   ];
 
   int _currentPage = 0;
