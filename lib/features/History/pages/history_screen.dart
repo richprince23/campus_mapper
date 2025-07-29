@@ -240,7 +240,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('History item deleted'),
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 3),
               action: SnackBarAction(
                 label: 'Undo',
                 onPressed: () {
