@@ -93,6 +93,16 @@ Campus Mapper is a Flutter application that helps students navigate campus effec
 - Handles location caching and error recovery
 - Use `LocationManager.getCurrentLocation()` instead of direct Geolocator calls
 
+### Search Functionality
+- **SearchProvider** (`lib/features/Explore/providers/search_provider.dart`) - Manages search operations
+- **Debouncing**: 500ms delay before executing search to prevent excessive API calls
+- **Minimum Characters**: Requires 3 non-space characters before triggering search
+- **TypeAheadField Integration**: Built-in debouncing with 300ms delay for real-time suggestions
+- **Search Methods**:
+  - `getSuggestions()` - For TypeAheadField with debouncing
+  - `searchByName()` - For programmatic searches with debouncing
+  - `searchByCategory()` - For category-based searches
+
 ### Known Issues & Solutions
 - **Permission Request Conflicts**: Use LocationManager to prevent "PERMISSION_REQUEST_IN_PROGRESS" errors
 - **Multiple Location Requests**: LocationManager includes request queuing and caching

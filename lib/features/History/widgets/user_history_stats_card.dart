@@ -46,32 +46,38 @@ class UserHistoryStatsCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Total',
                       stats['total_entries']?.toString() ?? '0',
                       HugeIcons.strokeRoundedTime04,
                       Theme.of(context).colorScheme.primary,
+                      'all',
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Searches',
                       stats['searches_performed']?.toString() ?? '0',
                       HugeIcons.strokeRoundedSearch01,
                       Theme.of(context).colorScheme.secondary,
+                      'searches',
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Places',
                       stats['places_visited']?.toString() ?? '0',
                       HugeIcons.strokeRoundedLocation01,
                       Theme.of(context).colorScheme.tertiary,
+                      'visits',
                     ),
                   ),
                 ],
@@ -81,32 +87,38 @@ class UserHistoryStatsCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Journeys',
                       stats['journeys_completed']?.toString() ?? '0',
                       HugeIcons.strokeRoundedRoute01,
                       Colors.green,
+                      'journeys',
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Favorites',
                       stats['places_favorited']?.toString() ?? '0',
                       HugeIcons.strokeRoundedFavourite,
                       Colors.red,
+                      'favorites',
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildStatItem(
+                    child: _buildClickableStatItem(
                       context,
+                      historyProvider,
                       'Routes',
                       stats['routes_calculated']?.toString() ?? '0',
                       HugeIcons.strokeRoundedRoute01,
                       Colors.blue,
+                      'routes',
                     ),
                   ),
                 ],
@@ -118,44 +130,82 @@ class UserHistoryStatsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(
+  Widget _buildClickableStatItem(
     BuildContext context,
+    UserHistoryProvider historyProvider,
     String label,
     String value,
     IconData icon,
     Color color,
+    String filterType,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withAlpha(26),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: color,
+    final isActive = historyProvider.currentFilter == filterType;
+    
+    return GestureDetector(
+      onTap: () {
+        historyProvider.setFilter(filterType);
+        
+        // Show feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              filterType == 'all' 
+                ? 'Showing all history' 
+                : 'Filtered by $label',
+            ),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                  fontSize: 10,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isActive 
+            ? color.withAlpha(77) // More opaque when active
+            : color.withAlpha(26),
+          borderRadius: BorderRadius.circular(8),
+          border: isActive 
+            ? Border.all(color: color, width: 2)
+            : null,
+          boxShadow: isActive 
+            ? [
+                BoxShadow(
+                  color: color.withAlpha(51),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : null,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: color,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: isActive ? FontWeight.w900 : FontWeight.bold,
+                    color: color,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

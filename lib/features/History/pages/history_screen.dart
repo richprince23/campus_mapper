@@ -13,20 +13,11 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 6, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -54,50 +45,29 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
             ],
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(104),
-              child: Column(
-                children: [
-                  // Search bar
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withAlpha(51),
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search history...',
-                        prefixIcon: Icon(HugeIcons.strokeRoundedSearch01),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      onChanged: historyProvider.setSearchQuery,
+              preferredSize: const Size.fromHeight(72),
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withAlpha(51),
+                  ),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search history...',
+                    prefixIcon: Icon(HugeIcons.strokeRoundedSearch01),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
                   ),
-                  // Filter tabs
-                  TabBar(
-                    controller: _tabController,
-                    onTap: (index) {
-                      final filters = ['all', 'searches', 'visits', 'journeys', 'favorites', 'routes'];
-                      historyProvider.setFilter(filters[index]);
-                    },
-                    tabs: const [
-                      Tab(text: 'All'),
-                      Tab(text: 'Searches'),
-                      Tab(text: 'Visits'),
-                      Tab(text: 'Journeys'),
-                      Tab(text: 'Favorites'),
-                      Tab(text: 'Routes'),
-                    ],
-                  ),
-                ],
+                  onChanged: historyProvider.setSearchQuery,
+                ),
               ),
             ),
           ),
@@ -163,7 +133,16 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              // Show a helpful message since the user can use the bottom navigation
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tap "Explore" in the bottom navigation to start searching for places'),
+                  duration: Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
             icon: const Icon(HugeIcons.strokeRoundedSearch01),
             label: const Text('Start Exploring'),
           ),

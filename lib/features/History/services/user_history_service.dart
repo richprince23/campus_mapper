@@ -1,12 +1,44 @@
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:developer' show log;
 
 class UserHistoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String? get _userId => _auth.currentUser?.uid;
+  String? _cachedUserId;
+  
+  Future<String?> get _userId async {
+    if (_cachedUserId != null) return _cachedUserId;
+    
+    // Try to get current authenticated user
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      _cachedUserId = currentUser.uid;
+      return _cachedUserId;
+    }
+    
+    // Try anonymous authentication
+    try {
+      final userCredential = await _auth.signInAnonymously();
+      _cachedUserId = userCredential.user?.uid;
+      log('Created anonymous user: $_cachedUserId');
+      return _cachedUserId;
+    } catch (e) {
+      log('Error creating anonymous user: $e');
+      // Fallback to device-specific ID
+      final prefs = await SharedPreferences.getInstance();
+      String? deviceUserId = prefs.getString('device_user_id');
+      if (deviceUserId == null) {
+        deviceUserId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+        await prefs.setString('device_user_id', deviceUserId);
+      }
+      _cachedUserId = deviceUserId;
+      return _cachedUserId;
+    }
+  }
 
   CollectionReference get _historyCollection => 
     _firestore.collection('user_history');
@@ -17,11 +49,12 @@ class UserHistoryService {
     DocumentSnapshot? lastDocument,
     List<HistoryActionType>? actionTypes,
   }) async {
-    if (_userId == null) return [];
+    final userId = await _userId;
+    if (userId == null) return [];
 
     try {
       Query query = _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .orderBy('timestamp', descending: true);
 
       // Filter by action types if provided
@@ -53,12 +86,13 @@ class UserHistoryService {
 
   /// Add new history entry
   Future<void> addHistoryEntry(UserHistory historyEntry) async {
-    if (_userId == null) return;
+    final userId = await _userId;
+    if (userId == null) return;
 
     try {
       // Check for recent duplicates to avoid spam
       final recentQuery = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .where('action_type', isEqualTo: UserHistory.actionTypeToString(historyEntry.actionType))
           .orderBy('timestamp', descending: true)
           .limit(1)
@@ -84,14 +118,15 @@ class UserHistoryService {
 
   /// Delete specific history entry
   Future<void> deleteHistoryEntry(String entryId) async {
-    if (_userId == null) return;
+    final userId = await _userId;
+    if (userId == null) return;
 
     try {
       // Verify the entry belongs to the current user before deleting
       final doc = await _historyCollection.doc(entryId).get();
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
-        if (data['user_id'] == _userId) {
+        if (data['user_id'] == userId) {
           await _historyCollection.doc(entryId).delete();
         } else {
           throw Exception('Unauthorized: Cannot delete another user\'s history');
@@ -105,11 +140,12 @@ class UserHistoryService {
 
   /// Clear all user history
   Future<void> clearUserHistory() async {
-    if (_userId == null) return;
+    final userId = await _userId;
+    if (userId == null) return;
 
     try {
       final snapshot = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .get();
       
       final batch = _firestore.batch();
@@ -129,11 +165,12 @@ class UserHistoryService {
     HistoryActionType actionType, {
     int? limit,
   }) async {
-    if (_userId == null) return [];
+    final userId = await _userId;
+    if (userId == null) return [];
 
     try {
       Query query = _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .where('action_type', isEqualTo: UserHistory.actionTypeToString(actionType))
           .orderBy('timestamp', descending: true);
       
@@ -153,11 +190,12 @@ class UserHistoryService {
 
   /// Get recent searches for quick access
   Future<List<String>> getRecentSearches({int limit = 10}) async {
-    if (_userId == null) return [];
+    final userId = await _userId;
+    if (userId == null) return [];
 
     try {
       final snapshot = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .where('action_type', isEqualTo: 'search_performed')
           .orderBy('timestamp', descending: true)
           .limit(limit)
@@ -181,11 +219,12 @@ class UserHistoryService {
 
   /// Get recently visited places
   Future<List<Map<String, dynamic>>> getRecentlyVisitedPlaces({int limit = 10}) async {
-    if (_userId == null) return [];
+    final userId = await _userId;
+    if (userId == null) return [];
 
     try {
       final snapshot = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .where('action_type', isEqualTo: 'place_visited')
           .orderBy('timestamp', descending: true)
           .limit(limit)
@@ -209,7 +248,8 @@ class UserHistoryService {
 
   /// Get history statistics
   Future<Map<String, int>> getHistoryStats() async {
-    if (_userId == null) {
+    final userId = await _userId;
+    if (userId == null) {
       return {
         'total_entries': 0,
         'places_visited': 0,
@@ -223,7 +263,7 @@ class UserHistoryService {
 
     try {
       final snapshot = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .get();
 
       final stats = <String, int>{
@@ -279,11 +319,12 @@ class UserHistoryService {
 
   /// Search history entries
   Future<List<UserHistory>> searchHistory(String searchTerm) async {
-    if (_userId == null || searchTerm.isEmpty) return [];
+    final userId = await _userId;
+    if (userId == null || searchTerm.isEmpty) return [];
 
     try {
       final snapshot = await _historyCollection
-          .where('user_id', isEqualTo: _userId)
+          .where('user_id', isEqualTo: userId)
           .orderBy('timestamp', descending: true)
           .get();
 

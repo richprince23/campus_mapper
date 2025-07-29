@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
@@ -15,6 +16,11 @@ class SearchProvider extends ChangeNotifier {
   bool _isSearching = false;
   String _currentQuery = '';
   BuildContext? _context;
+  Timer? _debounceTimer;
+  
+  // Search configuration
+  static const int _minSearchLength = 3; // Minimum non-space characters required
+  static const Duration _debounceDelay = Duration(milliseconds: 500); // Delay before search execution
 
   List<Location> get searchResults => _searchResults;
   List<String> get recentSearches => _recentSearches;
@@ -24,6 +30,12 @@ class SearchProvider extends ChangeNotifier {
 
   SearchProvider() {
     loadPopularSearches();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   void setContext(BuildContext context) {
@@ -86,19 +98,49 @@ class SearchProvider extends ChangeNotifier {
     'Services': ['Service', 'Services', 'Utility'],
   };
 
-  /// Search ocations by name
+  /// Search locations by name with debouncing
   Future<List<Map<String, dynamic>>> searchByName(String query) async {
-    if (query.isEmpty) {
+    // Cancel previous timer if it exists
+    _debounceTimer?.cancel();
+    
+    // Update current query immediately for UI
+    _currentQuery = query;
+    
+    // Clear results if query is empty or too short
+    if (query.isEmpty || _getNonSpaceCharCount(query) < _minSearchLength) {
       _searchResults = [];
-      _currentQuery = '';
+      _isSearching = false;
       notifyListeners();
       return [];
     }
 
+    // Set loading state
     _isSearching = true;
-    _currentQuery = query;
     notifyListeners();
 
+    // Create a completer to handle the async debouncing
+    final completer = Completer<List<Map<String, dynamic>>>();
+    
+    // Start debounce timer
+    _debounceTimer = Timer(_debounceDelay, () async {
+      try {
+        final results = await _performSearch(query);
+        completer.complete(results);
+      } catch (e) {
+        completer.completeError(e);
+      }
+    });
+    
+    return completer.future;
+  }
+
+  /// Count non-space characters in query
+  int _getNonSpaceCharCount(String query) {
+    return query.replaceAll(' ', '').length;
+  }
+
+  /// Perform the actual search
+  Future<List<Map<String, dynamic>>> _performSearch(String query) async {
     try {
       // Convert query to lowercase for case-insensitive search
       final lowerQuery = query.toLowerCase();
@@ -378,9 +420,43 @@ class SearchProvider extends ChangeNotifier {
     }
   }
 
+  /// Get search suggestions with debouncing (for TypeAheadField)
+  Future<List<Map<String, dynamic>>> getSuggestions(String pattern) async {
+    // Return empty list immediately if pattern is empty or too short
+    if (pattern.isEmpty || _getNonSpaceCharCount(pattern) < _minSearchLength) {
+      return [];
+    }
+
+    // Update current query for UI consistency
+    _currentQuery = pattern;
+
+    // If the same query is already being processed, return existing future
+    if (_debounceTimer != null && _debounceTimer!.isActive) {
+      _debounceTimer!.cancel();
+    }
+    
+    // Create completer for debounced response
+    final completer = Completer<List<Map<String, dynamic>>>();
+    
+    // Start debounce timer
+    _debounceTimer = Timer(_debounceDelay, () async {
+      try {
+        final results = await _performSearch(pattern);
+        completer.complete(results);
+      } catch (e) {
+        print('Suggestion search error: $e');
+        completer.complete([]);
+      }
+    });
+    
+    return completer.future;
+  }
+
   void clearSearch() {
+    _debounceTimer?.cancel();
     _searchResults = [];
     _currentQuery = '';
+    _isSearching = false;
     notifyListeners();
   }
 }

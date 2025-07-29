@@ -104,7 +104,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                         final response = await Provider.of<SearchProvider>(
                           context,
                           listen: false,
-                        ).searchByName(pattern);
+                        ).getSuggestions(pattern);
 
                         return response;
                       } catch (e) {
@@ -172,12 +172,17 @@ class _ExploreScreenState extends State<ExploreScreen>
                         _getRoute();
                       });
                     },
+                    // Add configuration for better debouncing
+                    debounceDuration: const Duration(milliseconds: 300),
+                    hideOnEmpty: true,
+                    hideOnError: true,
+                    hideOnLoading: false,
                     builder: (context, textController, focusNode) {
                       return TextField(
                         controller: textController,
                         focusNode: focusNode,
                         decoration: InputDecoration(
-                          hintText: 'Search a location',
+                          hintText: 'Search a location (min 3 characters)',
                           prefixIcon:
                               const Icon(HugeIcons.strokeRoundedSearch01),
                           suffixIcon: const Icon(Icons.mic),
