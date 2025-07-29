@@ -180,11 +180,8 @@ class UserHistoryProvider extends ChangeNotifier {
           break;
       }
 
-      // Apply search query filter
-      bool matchesSearch = _searchQuery.isEmpty ||
-          item.displayTitle.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (item.displaySubtitle != null &&
-              item.displaySubtitle!.toLowerCase().contains(_searchQuery.toLowerCase()));
+      // Apply search query filter - search across multiple fields
+      bool matchesSearch = _searchQuery.isEmpty || _itemMatchesSearch(item, _searchQuery);
 
       return matchesFilter && matchesSearch;
     }).toList();
@@ -193,6 +190,55 @@ class UserHistoryProvider extends ChangeNotifier {
     _filteredItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     
     notifyListeners();
+  }
+  
+  /// Comprehensive search function
+  bool _itemMatchesSearch(UserHistory item, String searchQuery) {
+    if (searchQuery.isEmpty) return true;
+    
+    final lowerQuery = searchQuery.toLowerCase();
+    
+    // Search in display title
+    if (item.displayTitle.toLowerCase().contains(lowerQuery)) {
+      return true;
+    }
+    
+    // Search in display subtitle
+    if (item.displaySubtitle != null && 
+        item.displaySubtitle!.toLowerCase().contains(lowerQuery)) {
+      return true;
+    }
+    
+    // Search in place name
+    final placeName = item.details['place_name']?.toString().toLowerCase() ?? '';
+    if (placeName.contains(lowerQuery)) {
+      return true;
+    }
+    
+    // Search in category
+    final category = item.details['metadata']?['category']?.toString().toLowerCase() ?? '';
+    if (category.contains(lowerQuery)) {
+      return true;
+    }
+    
+    // Search in search query (for search-type items)
+    if (item.actionType == HistoryActionType.searchPerformed) {
+      final searchedQuery = item.details['metadata']?['query']?.toString().toLowerCase() ?? '';
+      if (searchedQuery.contains(lowerQuery)) {
+        return true;
+      }
+    }
+    
+    // Search in route details (for journey/route items)
+    if (item.actionType == HistoryActionType.journeyCompleted || 
+        item.actionType == HistoryActionType.routeCalculated) {
+      final fromPlace = item.details['metadata']?['from_place']?.toString().toLowerCase() ?? '';
+      if (fromPlace.contains(lowerQuery)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   Future<void> _loadStats() async {
@@ -230,27 +276,10 @@ class UserHistoryProvider extends ChangeNotifier {
         .toList();
   }
 
-  // Search within loaded history
-  Future<void> searchHistory(String searchTerm) async {
+  // Search within loaded history (now uses local search only for consistency)
+  void searchHistory(String searchTerm) {
     _searchQuery = searchTerm;
-    
-    if (searchTerm.isEmpty) {
-      _applyFilters();
-      return;
-    }
-
-    try {
-      // For comprehensive search, query the service
-      final searchResults = await _historyService.searchHistory(searchTerm);
-      
-      // Update the filtered items with search results
-      _filteredItems = searchResults;
-      notifyListeners();
-    } catch (e) {
-      log('Error searching history: $e');
-      // Fallback to local search
-      _applyFilters();
-    }
+    _applyFilters();
   }
 
   // Analytics methods
@@ -338,5 +367,22 @@ class UserHistoryProvider extends ChangeNotifier {
     } else {
       return 'Not synced';
     }
+  }
+  
+  /// Get current user ID for debugging
+  Future<String?> getCurrentUserId() async {
+    return await _historyService.getCurrentUserId();
+  }
+  
+  /// Reset user session (useful for testing)
+  void resetUserSession() {
+    _historyService.resetUserId();
+    _historyItems.clear();
+    _filteredItems.clear();
+    _stats.clear();
+    _hasError = false;
+    _errorMessage = '';
+    _lastSyncTime = null;
+    notifyListeners();
   }
 }

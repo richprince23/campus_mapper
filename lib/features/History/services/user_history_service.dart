@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' show log;
+import 'dart:math' hide log;
 
 class UserHistoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,24 +21,47 @@ class UserHistoryService {
       return _cachedUserId;
     }
     
-    // Try anonymous authentication
-    try {
-      final userCredential = await _auth.signInAnonymously();
-      _cachedUserId = userCredential.user?.uid;
-      log('Created anonymous user: $_cachedUserId');
-      return _cachedUserId;
-    } catch (e) {
-      log('Error creating anonymous user: $e');
-      // Fallback to device-specific ID
-      final prefs = await SharedPreferences.getInstance();
-      String? deviceUserId = prefs.getString('device_user_id');
-      if (deviceUserId == null) {
-        deviceUserId = 'device_${DateTime.now().millisecondsSinceEpoch}';
-        await prefs.setString('device_user_id', deviceUserId);
-      }
-      _cachedUserId = deviceUserId;
-      return _cachedUserId;
+    // Skip anonymous authentication and go directly to device-based ID
+    // This avoids the admin-restricted-operation error
+    log('Using device-based user ID (anonymous auth disabled)');
+    
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceUserId = prefs.getString('device_user_id');
+    
+    if (deviceUserId == null) {
+      // Create a unique device-based user ID
+      deviceUserId = 'device_${DateTime.now().millisecondsSinceEpoch}_${_generateRandomString(8)}';
+      await prefs.setString('device_user_id', deviceUserId);
+      log('Created new device user ID: $deviceUserId');
+    } else {
+      log('Using existing device user ID: $deviceUserId');
     }
+    
+    _cachedUserId = deviceUserId;
+    return _cachedUserId;
+  }
+  
+  /// Generate a random string for user ID uniqueness
+  String _generateRandomString(int length) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    var result = '';
+    
+    for (int i = 0; i < length; i++) {
+      result += chars[random.nextInt(chars.length)];
+    }
+    
+    return result;
+  }
+  
+  /// Reset cached user ID (useful for testing or when switching users)
+  void resetUserId() {
+    _cachedUserId = null;
+  }
+  
+  /// Get current user ID without caching (for debugging)
+  Future<String?> getCurrentUserId() async {
+    return await _userId;
   }
 
   CollectionReference get _historyCollection => 
@@ -333,18 +357,61 @@ class UserHistoryService {
 
       for (final doc in snapshot.docs) {
         final history = UserHistory.fromFirestore(doc);
-        final placeName = history.details['place_name']?.toString().toLowerCase() ?? '';
-        final category = history.details['metadata']?['category']?.toString().toLowerCase() ?? '';
         
-        if (placeName.contains(lowerSearchTerm) || category.contains(lowerSearchTerm)) {
+        if (_historyItemMatchesSearch(history, lowerSearchTerm)) {
           results.add(history);
         }
       }
 
       return results;
     } catch (e) {
-      print('Error searching history: $e');
+      log('Error searching history: $e');
       return [];
     }
+  }
+  
+  /// Comprehensive search function for history items
+  bool _historyItemMatchesSearch(UserHistory item, String lowerSearchTerm) {
+    // Search in place name
+    final placeName = item.details['place_name']?.toString().toLowerCase() ?? '';
+    if (placeName.contains(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // Search in category
+    final category = item.details['metadata']?['category']?.toString().toLowerCase() ?? '';
+    if (category.contains(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // Search in display title
+    if (item.displayTitle.toLowerCase().contains(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // Search in display subtitle
+    if (item.displaySubtitle != null && 
+        item.displaySubtitle!.toLowerCase().contains(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // Search in search query (for search-type items)
+    if (item.actionType == HistoryActionType.searchPerformed) {
+      final searchedQuery = item.details['metadata']?['query']?.toString().toLowerCase() ?? '';
+      if (searchedQuery.contains(lowerSearchTerm)) {
+        return true;
+      }
+    }
+    
+    // Search in route details (for journey/route items)
+    if (item.actionType == HistoryActionType.journeyCompleted || 
+        item.actionType == HistoryActionType.routeCalculated) {
+      final fromPlace = item.details['metadata']?['from_place']?.toString().toLowerCase() ?? '';
+      if (fromPlace.contains(lowerSearchTerm)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }
