@@ -1,6 +1,9 @@
 import 'package:campus_mapper/features/Explore/models/location.dart';
+import 'package:campus_mapper/features/History/models/history_item.dart';
+import 'package:campus_mapper/features/History/providers/history_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SearchProvider extends ChangeNotifier {
@@ -11,6 +14,7 @@ class SearchProvider extends ChangeNotifier {
   List<String> _popularSearches = [];
   bool _isSearching = false;
   String _currentQuery = '';
+  BuildContext? _context;
 
   List<Location> get searchResults => _searchResults;
   List<String> get recentSearches => _recentSearches;
@@ -20,6 +24,22 @@ class SearchProvider extends ChangeNotifier {
 
   SearchProvider() {
     loadPopularSearches();
+  }
+
+  void setContext(BuildContext context) {
+    _context = context;
+  }
+
+  void _addToHistory(String query, {String? category, int? resultsCount}) {
+    if (_context != null) {
+      final historyProvider = Provider.of<HistoryProvider>(_context!, listen: false);
+      final historyItem = HistoryItem.search(
+        query: query,
+        category: category,
+        resultsCount: resultsCount,
+      );
+      historyProvider.addHistoryItem(historyItem);
+    }
   }
 
   final Map<String, List<String>> _categoryMappings = {
@@ -116,6 +136,9 @@ class SearchProvider extends ChangeNotifier {
         }
       }
 
+      // Add to history
+      _addToHistory(query, resultsCount: results.length);
+
       return results;
     } catch (e) {
       print('Search error: $e');
@@ -195,6 +218,9 @@ class SearchProvider extends ChangeNotifier {
           _recentSearches = _recentSearches.take(10).toList();
         }
       }
+
+      // Add to history
+      _addToHistory(category, category: category, resultsCount: _searchResults.length);
     } catch (e) {
       print('Category search error: $e');
       _searchResults = [];
@@ -255,6 +281,9 @@ class SearchProvider extends ChangeNotifier {
           _recentSearches = _recentSearches.take(10).toList();
         }
       }
+
+      // Add to history
+      _addToHistory(category, category: category, resultsCount: _searchResults.length);
     } catch (e) {
       print('Flexible category search error: $e');
       _searchResults = [];

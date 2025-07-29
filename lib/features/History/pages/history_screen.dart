@@ -1,188 +1,247 @@
-import 'package:campus_mapper/features/Explore/models/location.dart';
-import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
-import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
+import 'package:campus_mapper/features/History/models/history_item.dart';
+import 'package:campus_mapper/features/History/providers/history_provider.dart';
+import 'package:campus_mapper/features/History/widgets/history_item_tile.dart';
+import 'package:campus_mapper/features/History/widgets/history_stats_card.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-// Enhanced search provider with real-time suggestions
-
-// Enhanced search screen with suggestions and filters
-class EnhancedSearchScreen extends StatefulWidget {
-  final String? initialQuery;
-
-  const EnhancedSearchScreen({super.key, this.initialQuery});
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
 
   @override
-  State<EnhancedSearchScreen> createState() => _EnhancedSearchScreenState();
+  State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
-  late SearchProvider _searchProvider;
+class _HistoryScreenState extends State<HistoryScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _searchProvider = SearchProvider();
-    if (widget.initialQuery != null) {
-      _searchProvider.searchByName(widget.initialQuery!);
-    }
-    _searchProvider.loadPopularSearches();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _searchProvider,
-      child: Scaffold(
-        appBar: AppBar(),
-        body: Consumer<SearchProvider>(
-          builder: (context, provider, child) {
-            // if (provider.currentQuery.isEmpty) {
-            //   return _buildSearchSuggestions(provider);
-            // }
-
-            if (provider.isSearching) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (provider.searchResults.isEmpty) {
-              return _buildNoResults(provider.currentQuery);
-            }
-
-            return _buildSearchResults(provider.searchResults);
-          },
-        ),
-      ),
+    return Consumer<HistoryProvider>(
+      builder: (context, historyProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('History'),
+            elevation: 0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
+            actions: [
+              IconButton(
+                onPressed: () => _showClearHistoryDialog(context, historyProvider),
+                icon: const Icon(HugeIcons.strokeRoundedDelete02),
+                tooltip: 'Clear History',
+              ),
+              IconButton(
+                onPressed: () => historyProvider.loadHistory(),
+                icon: const Icon(HugeIcons.strokeRoundedRefresh),
+                tooltip: 'Refresh',
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(104),
+              child: Column(
+                children: [
+                  // Search bar
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline.withAlpha(51),
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search history...',
+                        prefixIcon: Icon(HugeIcons.strokeRoundedSearch01),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: historyProvider.setSearchQuery,
+                    ),
+                  ),
+                  // Filter tabs
+                  TabBar(
+                    controller: _tabController,
+                    onTap: (index) {
+                      final filters = ['all', 'search', 'navigation', 'locations'];
+                      historyProvider.setFilter(filters[index]);
+                    },
+                    tabs: const [
+                      Tab(text: 'All'),
+                      Tab(text: 'Searches'),
+                      Tab(text: 'Routes'),
+                      Tab(text: 'Places'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          body: historyProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : historyProvider.historyItems.isEmpty
+                  ? _buildEmptyState(context)
+                  : Column(
+                      children: [
+                        // Stats card
+                        if (historyProvider.historyItems.isNotEmpty)
+                          const HistoryStatsCard(),
+                        // History list
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: historyProvider.historyItems.length,
+                            itemBuilder: (context, index) {
+                              final item = historyProvider.historyItems[index];
+                              return HistoryItemTile(
+                                historyItem: item,
+                                onTap: () => _handleHistoryItemTap(context, item),
+                                onDelete: () => _deleteHistoryItem(
+                                  context,
+                                  historyProvider,
+                                  item,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+        );
+      },
     );
   }
 
-  Widget _buildNoResults(String query) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            HugeIcons.strokeRoundedSearch01,
+          Icon(
+            HugeIcons.strokeRoundedTime04,
             size: 64,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
-            'No results found for "$query"',
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
+            'No history yet',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Try searching for something else or browse categories in the previous page',
+            'Your searches and navigation history will appear here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              _searchProvider.clearSearch();
-              Navigator.pop(context);
-            },
-            child: const Text('Clear Search'),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(HugeIcons.strokeRoundedSearch01),
+            label: const Text('Start Exploring'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchResults(List<Location> results) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final location = results[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withAlpha(26),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                getCategoryIcon(location.category),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: Text(
-              location.name ?? 'Unknown',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(location.category),
-                if (location.description != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    location.description!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // if (location.rating != null) ...[
-                //   Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       const Icon(Icons.star, size: 16, color: Colors.amber),
-                //       const SizedBox(width: 2),
-                //       Text(location.rating!.toStringAsFixed(1)),
-                //     ],
-                //   ),
-                // ],
-                const SizedBox(height: 4),
-                const Icon(Icons.arrow_forward_ios, size: 16),
-              ],
-            ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      LocationDetailScreen(location: location),
+  void _handleHistoryItemTap(BuildContext context, HistoryItem item) {
+    switch (item.type) {
+      case HistoryType.search:
+        // Navigate back to search with the query
+        Navigator.of(context).pop(item.title);
+        break;
+      case HistoryType.navigation:
+        // Navigate to location details or re-navigate
+        if (item.locationId != null) {
+          // Navigate to location details
+          // This would need the location details screen
+        }
+        break;
+      case HistoryType.locationView:
+        // Navigate to location details
+        if (item.locationId != null) {
+          // Navigate to location details
+        }
+        break;
+    }
+  }
+
+  void _deleteHistoryItem(
+    BuildContext context,
+    HistoryProvider provider,
+    HistoryItem item,
+  ) {
+    if (item.id != null) {
+      provider.deleteHistoryItem(item.id!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('History item deleted'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showClearHistoryDialog(
+    BuildContext context,
+    HistoryProvider provider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History'),
+        content: const Text(
+          'Are you sure you want to clear all history? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              provider.clearHistory();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('History cleared'),
+                  duration: Duration(seconds: 2),
                 ),
               );
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Clear'),
           ),
-        );
-      },
+        ],
+      ),
     );
-  }
-
-  IconData getCategoryIcon(String categoryName) {
-    final categoryMap = {
-      'Classes': HugeIcons.strokeRoundedOnlineLearning01,
-      'Offices': HugeIcons.strokeRoundedOffice,
-      'Hostels': HugeIcons.strokeRoundedBedBunk,
-      'Printing Services': HugeIcons.strokeRoundedPrinter,
-      'Churches': HugeIcons.strokeRoundedChurch,
-      'Pharmacies': HugeIcons.strokeRoundedMedicineBottle01,
-      'Shopping centers': HugeIcons.strokeRoundedShoppingCart01,
-      'Food': HugeIcons.strokeRoundedRestaurant02,
-      'Store': HugeIcons.strokeRoundedStore04,
-      'ATMs': HugeIcons.strokeRoundedAtm01,
-      'Groceries': HugeIcons.strokeRoundedShoppingBag02,
-      'Bars & Pubs': HugeIcons.strokeRoundedDrink,
-      'Gyms': HugeIcons.strokeRoundedDumbbell01,
-    };
-
-    return categoryMap[categoryName] ??
-        Icons.help_outline; // Default icon if not found
   }
 }

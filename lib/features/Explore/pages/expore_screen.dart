@@ -8,11 +8,13 @@ import 'package:campus_mapper/core/services/location_manager.dart';
 import 'package:campus_mapper/features/Explore/models/category_item.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
-import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart' as explore_search;
+import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart'
+    as explore_search;
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:campus_mapper/features/History/models/history_item.dart';
+import 'package:campus_mapper/features/History/providers/history_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,7 +33,7 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen>
     with WidgetsBindingObserver {
   // final _supabase = Supabase.instance.client;
-  final _firestore = FirebaseFirestore.instance;
+  // final _firestore = FirebaseFirestore.instance;
   Location? selectedPlace;
   late GoogleMapController _mapController;
   bool _mapCreated = false;
@@ -59,6 +61,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     _initializeScreen();
     // _searchProvider.loadPopularSearches();
     _searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    _searchProvider.setContext(context);
   }
 
   Future<void> _initializeScreen() async {
@@ -150,6 +153,20 @@ class _ExploreScreenState extends State<ExploreScreen>
                             17,
                           ),
                         );
+
+                        // Add to history
+                        final historyProvider = Provider.of<HistoryProvider>(
+                            context,
+                            listen: false);
+                        final historyItem = HistoryItem.locationView(
+                          locationName:
+                              selectedPlace!.name ?? 'Unknown Location',
+                          locationId: selectedPlace!.id,
+                          latitude: selectedPlace!.location['latitude'],
+                          longitude: selectedPlace!.location['longitude'],
+                          category: selectedPlace!.category,
+                        );
+                        historyProvider.addHistoryItem(historyItem);
 
                         // Calculate route when a place is selected
                         _getRoute();
@@ -323,7 +340,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
           ),
         );
-        
+
         if (result != null) {
           setState(() {
             selectedPlace = result;
@@ -338,8 +355,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             // Add user location marker back
             if (_userPosition != null) {
               context.read<MapProvider>().addUserLocationMarker(
-                    LatLng(_userPosition!.latitude,
-                        _userPosition!.longitude),
+                    LatLng(_userPosition!.latitude, _userPosition!.longitude),
                   );
             }
 
@@ -352,6 +368,17 @@ class _ExploreScreenState extends State<ExploreScreen>
                 17,
               ),
             );
+
+            // Add to history
+            final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+            final historyItem = HistoryItem.locationView(
+              locationName: selectedPlace!.name ?? 'Unknown Location',
+              locationId: selectedPlace!.id,
+              latitude: selectedPlace!.location['latitude'],
+              longitude: selectedPlace!.location['longitude'],
+              category: selectedPlace!.category,
+            );
+            historyProvider.addHistoryItem(historyItem);
 
             // Calculate route when a place is selected
             _getRoute();
@@ -429,7 +456,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                 ),
               ),
             );
-            
+
             if (result != null) {
               setState(() {
                 selectedPlace = result;
@@ -444,8 +471,8 @@ class _ExploreScreenState extends State<ExploreScreen>
                 // Add user location marker back
                 if (_userPosition != null) {
                   context.read<MapProvider>().addUserLocationMarker(
-                        LatLng(_userPosition!.latitude,
-                            _userPosition!.longitude),
+                        LatLng(
+                            _userPosition!.latitude, _userPosition!.longitude),
                       );
                 }
 
@@ -458,6 +485,17 @@ class _ExploreScreenState extends State<ExploreScreen>
                     17,
                   ),
                 );
+
+                // Add to history
+                final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+                final historyItem = HistoryItem.locationView(
+                  locationName: selectedPlace!.name ?? 'Unknown Location',
+                  locationId: selectedPlace!.id,
+                  latitude: selectedPlace!.location['latitude'],
+                  longitude: selectedPlace!.location['longitude'],
+                  category: selectedPlace!.category,
+                );
+                historyProvider.addHistoryItem(historyItem);
 
                 // Calculate route when a place is selected
                 _getRoute();
@@ -686,6 +724,20 @@ class _ExploreScreenState extends State<ExploreScreen>
   /// start journey - FIXED VERSION
   void _startJourney() {
     if (selectedPlace == null || !_routeAvailable) return;
+
+    // Add to history
+    final historyProvider =
+        Provider.of<HistoryProvider>(context, listen: false);
+    final historyItem = HistoryItem.navigation(
+      fromLocation: 'Current Location',
+      toLocation: selectedPlace!.name ?? 'Selected Location',
+      toLocationId: selectedPlace!.id,
+      toLat: selectedPlace!.location['latitude'],
+      toLng: selectedPlace!.location['longitude'],
+      duration: '${(_routeDuration / 60).round()} min',
+      distance: '${(_routeDistance / 1000).toStringAsFixed(1)} km',
+    );
+    historyProvider.addHistoryItem(historyItem);
 
     Navigator.of(context).push(
       MaterialPageRoute(

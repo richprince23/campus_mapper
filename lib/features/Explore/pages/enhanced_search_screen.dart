@@ -1,5 +1,4 @@
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
-import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +23,7 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
   void initState() {
     super.initState();
     _searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    _searchProvider.setContext(context);
     _performSearch();
   }
 
@@ -132,9 +132,9 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (location.category?.isNotEmpty == true)
+                      if (location.category.isNotEmpty == true)
                         Text(
-                          location.category!,
+                          location.category,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 12,
@@ -154,13 +154,7 @@ class _EnhancedSearchScreenState extends State<EnhancedSearchScreen> {
                   ),
                   trailing: const Icon(HugeIcons.strokeRoundedArrowRight01),
                   onTap: () {
-                    Navigator.pop(context);
-                    
-                    // Add marker to map
-                    context.read<MapProvider>().clearMarkers();
-                    context.read<MapProvider>().addMarker(location);
-                    
-                    // Navigate back to explore screen will show the selected location
+                    // Return the selected location to the calling screen
                     Navigator.pop(context, location);
                   },
                 ),

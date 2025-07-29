@@ -15,7 +15,7 @@ class _MainScreenState extends State<MainScreen> {
   final kPages = [
     HomeScreen(),
     ExploreScreen(),
-    EnhancedSearchScreen(),
+    HistoryScreen(),
     Container()
   ];
 
