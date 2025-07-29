@@ -1,7 +1,7 @@
-import 'package:campus_mapper/features/History/models/history_item.dart';
-import 'package:campus_mapper/features/History/providers/history_provider.dart';
-import 'package:campus_mapper/features/History/widgets/history_item_tile.dart';
-import 'package:campus_mapper/features/History/widgets/history_stats_card.dart';
+import 'package:campus_mapper/features/History/models/user_history.dart';
+import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
+import 'package:campus_mapper/features/History/widgets/user_history_item_tile.dart';
+import 'package:campus_mapper/features/History/widgets/user_history_stats_card.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +21,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -33,7 +33,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HistoryProvider>(
+    return Consumer<UserHistoryProvider>(
       builder: (context, historyProvider, child) {
         return Scaffold(
           appBar: AppBar(
@@ -85,14 +85,16 @@ class _HistoryScreenState extends State<HistoryScreen>
                   TabBar(
                     controller: _tabController,
                     onTap: (index) {
-                      final filters = ['all', 'search', 'navigation', 'locations'];
+                      final filters = ['all', 'searches', 'visits', 'journeys', 'favorites', 'routes'];
                       historyProvider.setFilter(filters[index]);
                     },
                     tabs: const [
                       Tab(text: 'All'),
                       Tab(text: 'Searches'),
+                      Tab(text: 'Visits'),
+                      Tab(text: 'Journeys'),
+                      Tab(text: 'Favorites'),
                       Tab(text: 'Routes'),
-                      Tab(text: 'Places'),
                     ],
                   ),
                 ],
@@ -107,7 +109,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                       children: [
                         // Stats card
                         if (historyProvider.historyItems.isNotEmpty)
-                          const HistoryStatsCard(),
+                          const UserHistoryStatsCard(),
                         // History list
                         Expanded(
                           child: ListView.builder(
@@ -115,7 +117,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                             itemCount: historyProvider.historyItems.length,
                             itemBuilder: (context, index) {
                               final item = historyProvider.historyItems[index];
-                              return HistoryItemTile(
+                              return UserHistoryItemTile(
                                 historyItem: item,
                                 onTap: () => _handleHistoryItemTap(context, item),
                                 onDelete: () => _deleteHistoryItem(
@@ -170,22 +172,30 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  void _handleHistoryItemTap(BuildContext context, HistoryItem item) {
-    switch (item.type) {
-      case HistoryType.search:
+  void _handleHistoryItemTap(BuildContext context, UserHistory item) {
+    switch (item.actionType) {
+      case HistoryActionType.searchPerformed:
         // Navigate back to search with the query
-        Navigator.of(context).pop(item.title);
+        final query = item.details['metadata']?['query'] as String?;
+        if (query != null) {
+          Navigator.of(context).pop(query);
+        }
         break;
-      case HistoryType.navigation:
+      case HistoryActionType.journeyCompleted:
+      case HistoryActionType.routeCalculated:
         // Navigate to location details or re-navigate
-        if (item.locationId != null) {
+        final placeId = item.details['place_id'] as String?;
+        if (placeId != null) {
           // Navigate to location details
           // This would need the location details screen
         }
         break;
-      case HistoryType.locationView:
+      case HistoryActionType.placeVisited:
+      case HistoryActionType.placeFavorited:
+      case HistoryActionType.placeAdded:
         // Navigate to location details
-        if (item.locationId != null) {
+        final placeId = item.details['place_id'] as String?;
+        if (placeId != null) {
           // Navigate to location details
         }
         break;
@@ -194,8 +204,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   void _deleteHistoryItem(
     BuildContext context,
-    HistoryProvider provider,
-    HistoryItem item,
+    UserHistoryProvider provider,
+    UserHistory item,
   ) {
     if (item.id != null) {
       provider.deleteHistoryItem(item.id!);
@@ -210,7 +220,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   void _showClearHistoryDialog(
     BuildContext context,
-    HistoryProvider provider,
+    UserHistoryProvider provider,
   ) {
     showDialog(
       context: context,

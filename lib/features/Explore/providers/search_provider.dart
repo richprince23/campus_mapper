@@ -1,6 +1,6 @@
 import 'package:campus_mapper/features/Explore/models/location.dart';
-import 'package:campus_mapper/features/History/models/history_item.dart';
-import 'package:campus_mapper/features/History/providers/history_provider.dart';
+import 'package:campus_mapper/features/History/models/user_history.dart';
+import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -32,9 +32,10 @@ class SearchProvider extends ChangeNotifier {
 
   void _addToHistory(String query, {String? category, int? resultsCount}) {
     if (_context != null) {
-      final historyProvider = Provider.of<HistoryProvider>(_context!, listen: false);
-      final historyItem = HistoryItem.search(
-        query: query,
+      final historyProvider = Provider.of<UserHistoryProvider>(_context!, listen: false);
+      final historyItem = UserHistory.searchPerformed(
+        userId: 'current_user', // TODO: Get from auth
+        searchQuery: query,
         category: category,
         resultsCount: resultsCount,
       );

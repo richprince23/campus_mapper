@@ -96,3 +96,75 @@ Campus Mapper is a Flutter application that helps students navigate campus effec
 ### Known Issues & Solutions
 - **Permission Request Conflicts**: Use LocationManager to prevent "PERMISSION_REQUEST_IN_PROGRESS" errors
 - **Multiple Location Requests**: LocationManager includes request queuing and caching
+
+## Firebase Database Schema
+
+### User History Collection
+**Collection:** `user_history`
+
+The app tracks user activities using the following schema:
+
+```json
+{
+  "id": "auto_generated_id",
+  "user_id": "string",
+  "action_type": "string", // "place_added", "journey_completed", "place_visited", "place_favorited", "search_performed", "route_calculated"
+  "details": {
+    "place_id": "string",
+    "place_name": "string",
+    "activity_id": "string", // Reference to user_activities if applicable
+    "metadata": {
+      "category": "string",
+      "distance": "number",
+      "duration": "number",
+      "query": "string",
+      "results_count": "number"
+    }
+  },
+  "timestamp": "timestamp",
+  "location": {
+    "latitude": "number",
+    "longitude": "longitude"
+  }
+}
+```
+
+### Action Types:
+- **search_performed**: User searched for locations
+- **place_visited**: User viewed location details
+- **route_calculated**: User calculated route to destination
+- **journey_completed**: User completed navigation journey
+- **place_favorited**: User added location to favorites
+- **place_added**: User contributed new location
+
+### History Integration:
+- **UserHistoryService** handles all database operations
+- **UserHistoryProvider** manages state and UI updates
+- History is automatically tracked for:
+  - Location searches (text and category)
+  - Place visits and selections
+  - Route calculations and navigation starts
+  - Location favorites and additions
+
+### Usage in Code:
+```dart
+// Add search history
+final historyItem = UserHistory.searchPerformed(
+  userId: userId,
+  searchQuery: query,
+  category: category,
+  resultsCount: results.length,
+);
+await userHistoryProvider.addHistoryItem(historyItem);
+
+// Add place visit history
+final historyItem = UserHistory.placeVisited(
+  userId: userId,
+  placeId: placeId,
+  placeName: placeName,
+  category: category,
+  latitude: lat,
+  longitude: lng,
+);
+await userHistoryProvider.addHistoryItem(historyItem);
+```

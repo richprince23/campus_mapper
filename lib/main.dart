@@ -1,7 +1,7 @@
 import 'package:campus_mapper/core/custom_theme.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
-import 'package:campus_mapper/features/History/providers/history_provider.dart';
+import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:campus_mapper/firebase_options.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
@@ -32,7 +32,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
-        ChangeNotifierProvider(create: (_) => HistoryProvider()),
+        ChangeNotifierProvider(create: (_) => UserHistoryProvider()),
       ],
       child: const MainApp(),
     ),

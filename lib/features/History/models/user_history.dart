@@ -60,14 +60,14 @@ class UserHistory {
   Map<String, dynamic> toFirestore() {
     return {
       'user_id': userId,
-      'action_type': _actionTypeToString(actionType),
+      'action_type': actionTypeToString(actionType),
       'details': details,
       'timestamp': Timestamp.fromDate(timestamp),
       'location': location,
     };
   }
 
-  static String _actionTypeToString(HistoryActionType actionType) {
+  static String actionTypeToString(HistoryActionType actionType) {
     switch (actionType) {
       case HistoryActionType.placeAdded:
         return 'place_added';

@@ -13,8 +13,8 @@ import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
-import 'package:campus_mapper/features/History/models/history_item.dart';
-import 'package:campus_mapper/features/History/providers/history_provider.dart';
+import 'package:campus_mapper/features/History/models/user_history.dart';
+import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
@@ -155,16 +155,16 @@ class _ExploreScreenState extends State<ExploreScreen>
                         );
 
                         // Add to history
-                        final historyProvider = Provider.of<HistoryProvider>(
+                        final historyProvider = Provider.of<UserHistoryProvider>(
                             context,
                             listen: false);
-                        final historyItem = HistoryItem.locationView(
-                          locationName:
-                              selectedPlace!.name ?? 'Unknown Location',
-                          locationId: selectedPlace!.id,
+                        final historyItem = UserHistory.placeVisited(
+                          userId: 'current_user', // TODO: Get from auth
+                          placeId: selectedPlace!.id ?? '',
+                          placeName: selectedPlace!.name ?? 'Unknown Location',
+                          category: selectedPlace!.category,
                           latitude: selectedPlace!.location['latitude'],
                           longitude: selectedPlace!.location['longitude'],
-                          category: selectedPlace!.category,
                         );
                         historyProvider.addHistoryItem(historyItem);
 
@@ -370,13 +370,14 @@ class _ExploreScreenState extends State<ExploreScreen>
             );
 
             // Add to history
-            final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-            final historyItem = HistoryItem.locationView(
-              locationName: selectedPlace!.name ?? 'Unknown Location',
-              locationId: selectedPlace!.id,
+            final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+            final historyItem = UserHistory.placeVisited(
+              userId: 'current_user', // TODO: Get from auth
+              placeId: selectedPlace!.id ?? '',
+              placeName: selectedPlace!.name ?? 'Unknown Location',
+              category: selectedPlace!.category,
               latitude: selectedPlace!.location['latitude'],
               longitude: selectedPlace!.location['longitude'],
-              category: selectedPlace!.category,
             );
             historyProvider.addHistoryItem(historyItem);
 
@@ -487,13 +488,14 @@ class _ExploreScreenState extends State<ExploreScreen>
                 );
 
                 // Add to history
-                final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-                final historyItem = HistoryItem.locationView(
-                  locationName: selectedPlace!.name ?? 'Unknown Location',
-                  locationId: selectedPlace!.id,
+                final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+                final historyItem = UserHistory.placeVisited(
+                  userId: 'current_user', // TODO: Get from auth
+                  placeId: selectedPlace!.id ?? '',
+                  placeName: selectedPlace!.name ?? 'Unknown Location',
+                  category: selectedPlace!.category,
                   latitude: selectedPlace!.location['latitude'],
                   longitude: selectedPlace!.location['longitude'],
-                  category: selectedPlace!.category,
                 );
                 historyProvider.addHistoryItem(historyItem);
 
@@ -727,15 +729,15 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // Add to history
     final historyProvider =
-        Provider.of<HistoryProvider>(context, listen: false);
-    final historyItem = HistoryItem.navigation(
-      fromLocation: 'Current Location',
-      toLocation: selectedPlace!.name ?? 'Selected Location',
-      toLocationId: selectedPlace!.id,
-      toLat: selectedPlace!.location['latitude'],
-      toLng: selectedPlace!.location['longitude'],
-      duration: '${(_routeDuration / 60).round()} min',
-      distance: '${(_routeDistance / 1000).toStringAsFixed(1)} km',
+        Provider.of<UserHistoryProvider>(context, listen: false);
+    final historyItem = UserHistory.routeCalculated(
+      userId: 'current_user', // TODO: Get from auth
+      fromPlace: 'Current Location',
+      toPlace: selectedPlace!.name ?? 'Selected Location',
+      distance: _routeDistance / 1000, // Convert to km
+      duration: (_routeDuration / 60).round(), // Convert to minutes
+      latitude: selectedPlace!.location['latitude'],
+      longitude: selectedPlace!.location['longitude'],
     );
     historyProvider.addHistoryItem(historyItem);
 
