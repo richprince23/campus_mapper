@@ -31,112 +31,129 @@ class ProfileScreen extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Profile Icon
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(50),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Profile Icon
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Icon(
+                  HugeIcons.strokeRoundedUserCircle,
+                  size: 60,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
               ),
-              child: Icon(
-                HugeIcons.strokeRoundedUserCircle,
-                size: 60,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            Text(
-              'Guest User',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              'Sign in to sync your history and preferences across devices',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Sign In Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
+
+              const SizedBox(height: 24),
+
+              Text(
+                'Guest User',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-                icon: const Icon(HugeIcons.strokeRoundedLogin01),
-                label: const Text('Sign In'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Sign in to sync your history and preferences across devices',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withAlpha(153),
+                    ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 32),
+
+              // Sign In Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(HugeIcons.strokeRoundedLogin01),
+                  label: const Text('Sign In'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Guest Features
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withAlpha(51),
+
+              const SizedBox(height: 32),
+
+              // Guest Features
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withAlpha(51),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What you can do as a guest:',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem(context, HugeIcons.strokeRoundedSearch01,
+                        'Search for locations'),
+                    _buildFeatureItem(context, HugeIcons.strokeRoundedRoute01,
+                        'Get directions'),
+                    _buildFeatureItem(
+                        context,
+                        HugeIcons.strokeRoundedLocation01,
+                        'View location details'),
+                    _buildFeatureItem(context, HugeIcons.strokeRoundedTime04,
+                        'Local history (device only)'),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Sign in to unlock:',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem(
+                        context,
+                        HugeIcons.strokeRoundedCloudDownload,
+                        'Cloud sync across devices'),
+                    _buildFeatureItem(context, HugeIcons.strokeRoundedFavourite,
+                        'Save favorite places'),
+                    _buildFeatureItem(
+                        context,
+                        HugeIcons.strokeRoundedSettings02,
+                        'Personalized preferences'),
+                    _buildFeatureItem(context, HugeIcons.strokeRoundedSecurity,
+                        'Secure data backup'),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'What you can do as a guest:',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedSearch01, 'Search for locations'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedRoute01, 'Get directions'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedLocation01, 'View location details'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedTime04, 'Local history (device only)'),
-                  
-                  const SizedBox(height: 16),
-                  
-                  Text(
-                    'Sign in to unlock:',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedCloudDownload, 'Cloud sync across devices'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedFavourite, 'Save favorite places'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedSettings02, 'Personalized preferences'),
-                  _buildFeatureItem(context, HugeIcons.strokeRoundedSecurity, 'Secure data backup'),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -166,7 +183,9 @@ class ProfileScreen extends StatelessWidget {
                       : null,
                   child: authProvider.userPhotoURL == null
                       ? Text(
-                          authProvider.userDisplayName.substring(0, 1).toUpperCase(),
+                          authProvider.userDisplayName
+                              .substring(0, 1)
+                              .toUpperCase(),
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -175,30 +194,34 @@ class ProfileScreen extends StatelessWidget {
                         )
                       : null,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 Text(
                   authProvider.userDisplayName,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
                 ),
-                
+
                 const SizedBox(height: 4),
-                
+
                 Text(
                   authProvider.userEmail,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(153),
-                  ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer
+                            .withAlpha(153),
+                      ),
                 ),
-                
+
                 if (!authProvider.isEmailVerified) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.orange.withAlpha(51),
                       borderRadius: BorderRadius.circular(8),
@@ -228,9 +251,9 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Account Actions
           _buildActionCard(
             context,
@@ -284,9 +307,9 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Data Actions
           _buildActionCard(
             context,
@@ -319,16 +342,18 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Sign Out Button
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: authProvider.isLoading ? null : () {
-                _showSignOutDialog(context, authProvider);
-              },
+              onPressed: authProvider.isLoading
+                  ? null
+                  : () {
+                      _showSignOutDialog(context, authProvider);
+                    },
               icon: authProvider.isLoading
                   ? const SizedBox(
                       width: 16,
@@ -396,8 +421,8 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
           ...items,
@@ -439,14 +464,17 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withAlpha(153),
+                        ),
                   ),
                 ],
               ),
