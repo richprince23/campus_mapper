@@ -1,6 +1,7 @@
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:campus_mapper/features/History/services/user_history_service.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' show log;
 
 class UserHistoryProvider extends ChangeNotifier {
   final UserHistoryService _historyService = UserHistoryService();
@@ -8,15 +9,25 @@ class UserHistoryProvider extends ChangeNotifier {
   List<UserHistory> _historyItems = [];
   List<UserHistory> _filteredItems = [];
   bool _isLoading = false;
+  bool _hasError = false;
+  String _errorMessage = '';
   String _currentFilter = 'all';
   String _searchQuery = '';
   Map<String, int> _stats = {};
+  
+  // Sync status
+  bool _isSyncing = false;
+  DateTime? _lastSyncTime;
 
   List<UserHistory> get historyItems => _filteredItems;
   bool get isLoading => _isLoading;
+  bool get hasError => _hasError;
+  String get errorMessage => _errorMessage;
   String get currentFilter => _currentFilter;
   String get searchQuery => _searchQuery;
   Map<String, int> get stats => _stats;
+  bool get isSyncing => _isSyncing;
+  DateTime? get lastSyncTime => _lastSyncTime;
 
   UserHistoryProvider() {
     loadHistory();
@@ -25,60 +36,109 @@ class UserHistoryProvider extends ChangeNotifier {
   Future<void> loadHistory({bool showLoading = true}) async {
     if (showLoading) {
       _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
       notifyListeners();
     }
 
     try {
+      _isSyncing = true;
+      notifyListeners();
+      
       _historyItems = await _historyService.getUserHistory(limit: 100);
       _stats = await _historyService.getHistoryStats();
+      _lastSyncTime = DateTime.now();
       _applyFilters();
+      
+      _hasError = false;
+      _errorMessage = '';
     } catch (e) {
-      print('Error loading history: $e');
+      log('Error loading history: $e');
+      _hasError = true;
+      _errorMessage = 'Failed to load history. Please check your connection.';
     } finally {
+      _isSyncing = false;
       if (showLoading) {
         _isLoading = false;
-        notifyListeners();
       }
+      notifyListeners();
     }
   }
 
   Future<void> addHistoryItem(UserHistory item) async {
     try {
-      await _historyService.addHistoryEntry(item);
-      
       // Add to local list for immediate UI update
       _historyItems.insert(0, item);
       _applyFilters();
       
-      // Update stats
-      await _loadStats();
-    } catch (e) {
-      print('Error adding history item: $e');
-    }
-  }
-
-  Future<void> deleteHistoryItem(String itemId) async {
-    try {
-      await _historyService.deleteHistoryEntry(itemId);
-      _historyItems.removeWhere((item) => item.id == itemId);
-      _applyFilters();
+      // Sync to Firebase in background
+      _syncInBackground(() => _historyService.addHistoryEntry(item));
       
       // Update stats
       await _loadStats();
     } catch (e) {
-      print('Error deleting history item: $e');
+      log('Error adding history item: $e');
+      // Remove from local list if sync fails
+      _historyItems.removeWhere((h) => h.timestamp == item.timestamp);
+      _applyFilters();
+      rethrow;
+    }
+  }
+
+  Future<void> deleteHistoryItem(String itemId) async {
+    // Find and backup the item in case we need to restore it
+    UserHistory? backupItem;
+    final itemIndex = _historyItems.indexWhere((item) => item.id == itemId);
+    if (itemIndex != -1) {
+      backupItem = _historyItems[itemIndex];
+    }
+    
+    try {
+      // Remove from local list for immediate UI update
+      _historyItems.removeWhere((item) => item.id == itemId);
+      _applyFilters();
+      
+      // Sync deletion to Firebase
+      await _historyService.deleteHistoryEntry(itemId);
+      
+      // Update stats
+      await _loadStats();
+    } catch (e) {
+      log('Error deleting history item: $e');
+      
+      // Restore the item if deletion failed
+      if (backupItem != null && itemIndex != -1) {
+        _historyItems.insert(itemIndex, backupItem);
+        _applyFilters();
+      }
+      
+      rethrow;
     }
   }
 
   Future<void> clearHistory() async {
+    // Backup current items in case we need to restore
+    final backupItems = List<UserHistory>.from(_historyItems);
+    final backupStats = Map<String, int>.from(_stats);
+    
     try {
-      await _historyService.clearUserHistory();
+      // Clear local data for immediate UI update
       _historyItems.clear();
       _filteredItems.clear();
       _stats.clear();
       notifyListeners();
+      
+      // Sync clearing to Firebase
+      await _historyService.clearUserHistory();
     } catch (e) {
-      print('Error clearing history: $e');
+      log('Error clearing history: $e');
+      
+      // Restore data if clearing failed
+      _historyItems = backupItems;
+      _stats = backupStats;
+      _applyFilters();
+      
+      rethrow;
     }
   }
 
@@ -140,7 +200,7 @@ class UserHistoryProvider extends ChangeNotifier {
       _stats = await _historyService.getHistoryStats();
       notifyListeners();
     } catch (e) {
-      print('Error loading stats: $e');
+      log('Error loading stats: $e');
     }
   }
 
@@ -149,7 +209,7 @@ class UserHistoryProvider extends ChangeNotifier {
     try {
       return await _historyService.getRecentSearches(limit: limit);
     } catch (e) {
-      print('Error getting recent searches: $e');
+      log('Error getting recent searches: $e');
       return [];
     }
   }
@@ -158,7 +218,7 @@ class UserHistoryProvider extends ChangeNotifier {
     try {
       return await _historyService.getRecentlyVisitedPlaces(limit: limit);
     } catch (e) {
-      print('Error getting recently visited places: $e');
+      log('Error getting recently visited places: $e');
       return [];
     }
   }
@@ -187,7 +247,7 @@ class UserHistoryProvider extends ChangeNotifier {
       _filteredItems = searchResults;
       notifyListeners();
     } catch (e) {
-      print('Error searching history: $e');
+      log('Error searching history: $e');
       // Fallback to local search
       _applyFilters();
     }
@@ -244,5 +304,39 @@ class UserHistoryProvider extends ChangeNotifier {
         .take(limit)
         .map((entry) => entry.key)
         .toList();
+  }
+  
+  /// Sync operation in background without blocking UI
+  void _syncInBackground(Future<void> Function() operation) {
+    operation().catchError((e) {
+      log('Background sync failed: $e');
+      // Could implement retry logic here
+    });
+  }
+  
+  /// Force refresh from Firebase
+  Future<void> refreshFromFirebase() async {
+    await loadHistory(showLoading: true);
+  }
+  
+  /// Get sync status message
+  String getSyncStatusMessage() {
+    if (_isSyncing) {
+      return 'Syncing...';
+    } else if (_hasError) {
+      return 'Sync failed';
+    } else if (_lastSyncTime != null) {
+      final now = DateTime.now();
+      final difference = now.difference(_lastSyncTime!);
+      if (difference.inMinutes < 1) {
+        return 'Synced just now';
+      } else if (difference.inHours < 1) {
+        return 'Synced ${difference.inMinutes}m ago';
+      } else {
+        return 'Synced ${difference.inHours}h ago';
+      }
+    } else {
+      return 'Not synced';
+    }
   }
 }

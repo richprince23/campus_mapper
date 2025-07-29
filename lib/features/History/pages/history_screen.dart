@@ -34,7 +34,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
             actions: [
               IconButton(
-                onPressed: () => _showClearHistoryDialog(context, historyProvider),
+                onPressed: () =>
+                    _showClearHistoryDialog(context, historyProvider),
                 icon: const Icon(HugeIcons.strokeRoundedDelete02),
                 tooltip: 'Clear History',
               ),
@@ -73,34 +74,79 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           body: historyProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : historyProvider.historyItems.isEmpty
-                  ? _buildEmptyState(context)
-                  : Column(
-                      children: [
-                        // Stats card
-                        if (historyProvider.historyItems.isNotEmpty)
-                          const UserHistoryStatsCard(),
-                        // History list
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: historyProvider.historyItems.length,
-                            itemBuilder: (context, index) {
-                              final item = historyProvider.historyItems[index];
-                              return UserHistoryItemTile(
-                                historyItem: item,
-                                onTap: () => _handleHistoryItemTap(context, item),
-                                onDelete: () => _deleteHistoryItem(
-                                  context,
-                                  historyProvider,
-                                  item,
+              : historyProvider.hasError
+                  ? _buildErrorState(context, historyProvider)
+                  : historyProvider.historyItems.isEmpty
+                      ? _buildEmptyState(context)
+                      : Column(
+                          children: [
+                            // Sync status indicator
+                            if (historyProvider.isSyncing)
+                              Container(
+                                width: double.infinity,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Syncing to cloud...',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            // Stats card
+                            if (historyProvider.historyItems.isNotEmpty)
+                              const UserHistoryStatsCard(),
+                            // History list
+                            Expanded(
+                              child: RefreshIndicator(
+                                onRefresh: () =>
+                                    historyProvider.refreshFromFirebase(),
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount:
+                                      historyProvider.historyItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item =
+                                        historyProvider.historyItems[index];
+                                    return UserHistoryItemTile(
+                                      historyItem: item,
+                                      onTap: () =>
+                                          _handleHistoryItemTap(context, item),
+                                      onDelete: () => _deleteHistoryItem(
+                                        context,
+                                        historyProvider,
+                                        item,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
         );
       },
     );
@@ -137,7 +183,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               // Show a helpful message since the user can use the bottom navigation
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Tap "Explore" in the bottom navigation to start searching for places'),
+                  content: Text(
+                      'Tap "Explore" in the bottom navigation to start searching for places'),
                   duration: Duration(seconds: 3),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -185,15 +232,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
     BuildContext context,
     UserHistoryProvider provider,
     UserHistory item,
-  ) {
+  ) async {
     if (item.id != null) {
-      provider.deleteHistoryItem(item.id!);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('History item deleted'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      try {
+        await provider.deleteHistoryItem(item.id!);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('History item deleted'),
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () {
+                  // Re-add the item (simplified undo)
+                  provider.addHistoryItem(item);
+                },
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete item: ${e.toString()}'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -206,7 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Clear History'),
         content: const Text(
-          'Are you sure you want to clear all history? This action cannot be undone.',
+          'Are you sure you want to clear all history? This action cannot be undone and will remove all data from the cloud.',
         ),
         actions: [
           TextButton(
@@ -214,15 +282,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              provider.clearHistory();
+            onPressed: () async {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('History cleared'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              try {
+                await provider.clearHistory();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('History cleared successfully'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to clear history: ${e.toString()}'),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              }
             },
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
@@ -230,6 +312,54 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: const Text('Clear'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, UserHistoryProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              HugeIcons.strokeRoundedAlert02,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sync Error',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              provider.errorMessage,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color:
+                        Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => provider.refreshFromFirebase(),
+              icon: const Icon(HugeIcons.strokeRoundedRefresh),
+              label: const Text('Retry'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              provider.getSyncStatusMessage(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color:
+                        Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
