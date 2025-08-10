@@ -1,6 +1,7 @@
 import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
+import 'package:campus_mapper/features/Home/pages/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -233,11 +234,21 @@ class ProfileScreen extends StatelessWidget {
                 icon: HugeIcons.strokeRoundedUser,
                 title: 'Edit Profile',
                 subtitle: 'Update your personal information',
-                onTap: () {
-                  // TODO: Navigate to edit profile screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Edit Profile - Coming Soon')),
+                onTap: () async {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfileScreen(),
+                    ),
                   );
+                  
+                  if (result == true && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Profile updated successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActionItem(
@@ -282,16 +293,17 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Privacy Policy',
                 subtitle: 'View our privacy policy',
                 onTap: () async {
-                  const url =
-                      'https://suptle.com/privacy';
+                  const url = 'https://suptle.com/privacy';
                   if (await canLaunchUrl(Uri.parse(url))) {
                     await launchUrl(Uri.parse(url),
                         mode: LaunchMode.externalApplication);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Could not open privacy policy')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Could not open privacy policy')),
+                      );
+                    }
                   }
                 },
               ),
@@ -306,10 +318,12 @@ class ProfileScreen extends StatelessWidget {
                     await launchUrl(Uri.parse(url),
                         mode: LaunchMode.externalApplication);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Could not open terms and conditions')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Could not open terms and conditions')),
+                      );
+                    }
                   }
                 },
               ),
