@@ -2,6 +2,7 @@ import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:campus_mapper/features/Home/pages/edit_profile_screen.dart';
+import 'package:campus_mapper/features/Preferences/pages/preferences_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -257,9 +258,10 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Preferences',
                 subtitle: 'App settings and preferences',
                 onTap: () {
-                  // TODO: Navigate to settings screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Preferences - Coming Soon')),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PreferencesScreen(),
+                    ),
                   );
                 },
               ),
