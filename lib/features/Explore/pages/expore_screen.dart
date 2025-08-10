@@ -10,6 +10,8 @@ import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
 import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart'
     as explore_search;
+import 'package:campus_mapper/features/Explore/pages/add_location_screen.dart';
+import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/Explore/widgets/route_panel.dart';
@@ -319,6 +321,19 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
           ),
         ],
+      ),
+      floatingActionButton: Consumer<UserHistoryProvider>(
+        builder: (context, historyProvider, child) {
+          return FloatingActionButton(
+            onPressed: () => _showAddLocationDialog(),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(
+              HugeIcons.strokeRoundedAddCircle,
+              color: Colors.white,
+            ),
+            tooltip: 'Add Location',
+          );
+        },
       ),
     );
   }
@@ -854,6 +869,43 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
       }
       await Future.delayed(Duration(milliseconds: 200));
+    }
+  }
+
+  void _showAddLocationDialog() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Check if user is logged in
+    if (!authProvider.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to add locations'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Navigate to AddLocationScreen
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AddLocationScreen(
+          initialLocation: _userPosition != null 
+              ? LatLng(_userPosition!.latitude, _userPosition!.longitude)
+              : null,
+        ),
+      ),
+    );
+
+    // If location was added successfully, optionally refresh the search results
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thank you for contributing to the campus map!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 }
