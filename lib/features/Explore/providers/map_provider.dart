@@ -2,6 +2,7 @@ import 'dart:developer' show log;
 import 'dart:ui' as ui;
 
 import 'package:campus_mapper/features/Explore/models/location.dart';
+import 'package:campus_mapper/features/Preferences/providers/preferences_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -10,8 +11,14 @@ class MapProvider extends ChangeNotifier {
   final Set<Marker> _markers = {};
   // current user location
   LatLng? _currentUserLocation;
+  
+  // Map preferences
+  MapType _currentMapType = MapType.normal;
+  PreferencesProvider? _preferencesProvider;
 
   LatLng? get currentUserLocation => _currentUserLocation;
+  MapType get currentMapType => _currentMapType;
+  
   // user location marker
   Marker? _userLocationMarker;
 
@@ -361,5 +368,71 @@ class MapProvider extends ChangeNotifier {
   void clearMarkers() {
     _markers.clear();
     notifyListeners();
+  }
+
+  /// Set preferences provider to get map type preference
+  void setPreferencesProvider(PreferencesProvider preferencesProvider) {
+    _preferencesProvider = preferencesProvider;
+    _updateMapTypeFromPreferences();
+    
+    // Listen to preference changes
+    preferencesProvider.addListener(_updateMapTypeFromPreferences);
+  }
+
+  /// Update map type based on user preferences
+  void _updateMapTypeFromPreferences() {
+    if (_preferencesProvider?.preferences != null) {
+      final mapTypeString = _preferencesProvider!.preferences!.mapType;
+      _currentMapType = _getMapTypeFromString(mapTypeString);
+      notifyListeners();
+    }
+  }
+
+  /// Convert string to MapType enum
+  MapType _getMapTypeFromString(String mapTypeString) {
+    switch (mapTypeString.toLowerCase()) {
+      case 'satellite':
+        return MapType.satellite;
+      case 'hybrid':
+        return MapType.hybrid;
+      case 'terrain':
+        return MapType.terrain;
+      case 'normal':
+      default:
+        return MapType.normal;
+    }
+  }
+
+  /// Manually set map type (will also update preferences)
+  void setMapType(MapType mapType) {
+    _currentMapType = mapType;
+    notifyListeners();
+    
+    // Update preferences if available
+    if (_preferencesProvider != null) {
+      final mapTypeString = _getStringFromMapType(mapType);
+      _preferencesProvider!.setMapType(mapTypeString);
+    }
+  }
+
+  /// Convert MapType enum to string
+  String _getStringFromMapType(MapType mapType) {
+    switch (mapType) {
+      case MapType.satellite:
+        return 'satellite';
+      case MapType.hybrid:
+        return 'hybrid';
+      case MapType.terrain:
+        return 'terrain';
+      case MapType.normal:
+      default:
+        return 'normal';
+    }
+  }
+
+  @override
+  void dispose() {
+    _preferencesProvider?.removeListener(_updateMapTypeFromPreferences);
+    super.dispose();
   }
 }
