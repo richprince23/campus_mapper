@@ -271,7 +271,7 @@ class UserHistoryService {
   }
 
   /// Get history statistics
-  Future<Map<String, int>> getHistoryStats() async {
+  Future<Map<String, dynamic>> getHistoryStats() async {
     final userId = await _userId;
     if (userId == null) {
       return {
@@ -282,6 +282,8 @@ class UserHistoryService {
         'places_favorited': 0,
         'places_added': 0,
         'routes_calculated': 0,
+        'total_distance': 0.0,
+        'total_calories': 0.0,
       };
     }
 
@@ -290,7 +292,7 @@ class UserHistoryService {
           .where('user_id', isEqualTo: userId)
           .get();
 
-      final stats = <String, int>{
+      final stats = <String, dynamic>{
         'total_entries': snapshot.docs.length,
         'places_visited': 0,
         'searches_performed': 0,
@@ -298,11 +300,15 @@ class UserHistoryService {
         'places_favorited': 0,
         'places_added': 0,
         'routes_calculated': 0,
+        'total_distance': 0.0,
+        'total_calories': 0.0,
       };
 
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final actionType = data['action_type'] as String?;
+        final details = data['details'] as Map<String, dynamic>? ?? {};
+        final metadata = details['metadata'] as Map<String, dynamic>? ?? {};
         
         switch (actionType) {
           case 'place_visited':
@@ -313,6 +319,11 @@ class UserHistoryService {
             break;
           case 'journey_completed':
             stats['journeys_completed'] = stats['journeys_completed']! + 1;
+            // Add distance from journey
+            final distance = metadata['distance'] as num?;
+            if (distance != null) {
+              stats['total_distance'] = (stats['total_distance'] as double) + distance.toDouble();
+            }
             break;
           case 'place_favorited':
             stats['places_favorited'] = stats['places_favorited']! + 1;
@@ -322,9 +333,18 @@ class UserHistoryService {
             break;
           case 'route_calculated':
             stats['routes_calculated'] = stats['routes_calculated']! + 1;
+            // Add distance from route calculation
+            final distance = metadata['distance'] as num?;
+            if (distance != null) {
+              stats['total_distance'] = (stats['total_distance'] as double) + distance.toDouble();
+            }
             break;
         }
       }
+
+      // Calculate total calories based on total distance (65 calories per km)
+      final totalDistanceKm = (stats['total_distance'] as double) / 1000;
+      stats['total_calories'] = totalDistanceKm * 65;
 
       return stats;
     } catch (e) {
@@ -337,6 +357,8 @@ class UserHistoryService {
         'places_favorited': 0,
         'places_added': 0,
         'routes_calculated': 0,
+        'total_distance': 0.0,
+        'total_calories': 0.0,
       };
     }
   }
