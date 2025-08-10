@@ -203,20 +203,41 @@ class AuthService {
   Future<void> updateUserProfile({
     String? displayName,
     String? photoURL,
+    String? phoneNumber,
+    String? bio,
   }) async {
     try {
       final user = currentUser;
       if (user == null) throw Exception('No user logged in');
       
-      await user.updateDisplayName(displayName);
-      await user.updatePhotoURL(photoURL);
+      // Update Firebase Auth profile
+      if (displayName != null) {
+        await user.updateDisplayName(displayName);
+      }
+      if (photoURL != null) {
+        await user.updatePhotoURL(photoURL);
+      }
       
       // Update Firestore document
-      await _firestore.collection('user_profiles').doc(user.uid).update({
-        'display_name': displayName ?? user.displayName,
-        'profile_picture_path': photoURL ?? user.photoURL,
+      final updateData = <String, dynamic>{
         'updated_at': FieldValue.serverTimestamp(),
-      });
+      };
+      
+      if (displayName != null) {
+        updateData['display_name'] = displayName;
+        updateData['full_name'] = displayName; // Keep both for compatibility
+      }
+      if (photoURL != null) {
+        updateData['profile_picture_path'] = photoURL;
+      }
+      if (phoneNumber != null) {
+        updateData['phone_number'] = phoneNumber;
+      }
+      if (bio != null) {
+        updateData['bio'] = bio;
+      }
+      
+      await _firestore.collection('user_profiles').doc(user.uid).update(updateData);
       
       log('User profile updated successfully');
     } catch (e) {
