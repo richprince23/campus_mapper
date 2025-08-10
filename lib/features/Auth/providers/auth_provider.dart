@@ -128,6 +128,8 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> updateProfile({
     String? displayName,
     String? photoURL,
+    String? phoneNumber,
+    String? bio,
   }) async {
     try {
       _setLoading(true);
@@ -136,7 +138,13 @@ class AuthProvider extends ChangeNotifier {
       await _authService.updateUserProfile(
         displayName: displayName,
         photoURL: photoURL,
+        phoneNumber: phoneNumber,
+        bio: bio,
       );
+      
+      // Reload current user to get updated data
+      await _currentUser?.reload();
+      _currentUser = _authService.currentUser;
       
       return true;
     } catch (e) {
