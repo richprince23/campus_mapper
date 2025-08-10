@@ -123,6 +123,37 @@ class UserHistoryStatsCard extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              // Third row - Distance and Calories
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildClickableStatItem(
+                      context,
+                      historyProvider,
+                      'Distance',
+                      _formatDistance(stats['total_distance'] as double? ?? 0.0),
+                      HugeIcons.strokeRoundedRoute03,
+                      Colors.orange,
+                      'distance',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildClickableStatItem(
+                      context,
+                      historyProvider,
+                      'Calories',
+                      _formatCalories(stats['total_calories'] as double? ?? 0.0),
+                      HugeIcons.strokeRoundedFire,
+                      Colors.deepOrange,
+                      'calories',
+                    ),
+                  ),
+                  // Add empty expanded to maintain 3-column layout
+                  const Expanded(child: SizedBox()),
+                ],
+              ),
             ],
           ),
         );
@@ -143,6 +174,32 @@ class UserHistoryStatsCard extends StatelessWidget {
     
     return GestureDetector(
       onTap: () {
+        // Check if this tile has zero items (handle both numeric and string values)
+        if ((value == '0' || value == '0.0 km' || value == '0 cal') && filterType != 'all' && filterType != 'distance' && filterType != 'calories') {
+          // Show snackbar for empty category without filtering
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No $label found yet'),
+              duration: const Duration(seconds: 1),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return; // Don't apply filter or change navigation
+        }
+        
+        // Distance and calories are informational only, don't filter
+        if (filterType == 'distance' || filterType == 'calories') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Total $label: $value'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        
+        // Apply filter for non-zero values or "all" category
         historyProvider.setFilter(filterType);
         
         // Show feedback
@@ -208,5 +265,20 @@ class UserHistoryStatsCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDistance(double distanceInMeters) {
+    if (distanceInMeters == 0) return '0.0 km';
+    
+    final distanceInKm = distanceInMeters / 1000;
+    if (distanceInKm < 1) {
+      return '${distanceInMeters.toStringAsFixed(0)} m';
+    }
+    return '${distanceInKm.toStringAsFixed(1)} km';
+  }
+
+  String _formatCalories(double calories) {
+    if (calories == 0) return '0 cal';
+    return '${calories.toStringAsFixed(0)} cal';
   }
 }
