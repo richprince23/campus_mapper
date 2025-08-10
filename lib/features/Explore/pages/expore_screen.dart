@@ -223,21 +223,25 @@ class _ExploreScreenState extends State<ExploreScreen>
             child: Stack(
               // fit: StackFit.loose,
               children: [
-                GoogleMap(
-                  initialCameraPosition: const CameraPosition(
-                    target: LatLng(5.362312610147424, -0.633134506275042),
-                    zoom: 13,
-                  ),
-                  mapType: MapType.normal,
-                  myLocationButtonEnabled: true,
-                  myLocationEnabled: true,
-                  markers: context.watch<MapProvider>().markers,
-                  polylines: _polylines,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
+                Consumer<MapProvider>(
+                  builder: (context, mapProvider, child) {
+                    return GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(5.362312610147424, -0.633134506275042),
+                        zoom: 13,
+                      ),
+                      mapType: mapProvider.currentMapType,
+                      myLocationButtonEnabled: true,
+                      myLocationEnabled: true,
+                      markers: mapProvider.markers,
+                      polylines: _polylines,
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                      },
+                      zoomControlsEnabled: false,
+                      compassEnabled: false,
+                    );
                   },
-                  zoomControlsEnabled: false,
-                  compassEnabled: false,
                 ),
 
                 // Loading indicator
