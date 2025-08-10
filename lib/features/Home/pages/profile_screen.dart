@@ -217,37 +217,6 @@ class ProfileScreen extends StatelessWidget {
                       ),
                 ),
 
-                if (!authProvider.isEmailVerified) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withAlpha(51),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withAlpha(128)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          HugeIcons.strokeRoundedAlert02,
-                          size: 16,
-                          color: Colors.orange.shade700,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Email not verified',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -271,28 +240,6 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-              if (!authProvider.isEmailVerified)
-                _buildActionItem(
-                  context,
-                  icon: HugeIcons.strokeRoundedMail01,
-                  title: 'Verify Email',
-                  subtitle: 'Verify your email address',
-                  onTap: () async {
-                    final success = await authProvider.sendEmailVerification();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            success
-                                ? 'Verification email sent!'
-                                : 'Failed to send verification email',
-                          ),
-                          backgroundColor: success ? Colors.green : Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                ),
               _buildActionItem(
                 context,
                 icon: HugeIcons.strokeRoundedSettings02,
