@@ -4,6 +4,7 @@ import 'package:campus_mapper/features/History/providers/user_history_provider.d
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -216,7 +217,6 @@ class ProfileScreen extends StatelessWidget {
                             .withAlpha(153),
                       ),
                 ),
-
               ],
             ),
           ),
@@ -278,13 +278,48 @@ class ProfileScreen extends StatelessWidget {
               ),
               _buildActionItem(
                 context,
-                icon: HugeIcons.strokeRoundedDownload01,
-                title: 'Export Data',
-                subtitle: 'Download your data',
+                icon: HugeIcons.strokeRoundedShield01,
+                title: 'Privacy Policy',
+                subtitle: 'View our privacy policy',
+                onTap: () async {
+                  const url =
+                      'https://suptle.com/privacy';
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url),
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Could not open privacy policy')),
+                    );
+                  }
+                },
+              ),
+              _buildActionItem(
+                context,
+                icon: HugeIcons.strokeRoundedNote,
+                title: 'Terms & Conditions',
+                subtitle: 'View terms and conditions',
+                onTap: () async {
+                  const url = 'https://suptle.com/campus-mapper/terms';
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url),
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Could not open terms and conditions')),
+                    );
+                  }
+                },
+              ),
+              _buildActionItem(
+                context,
+                icon: HugeIcons.strokeRoundedDelete01,
+                title: 'Delete Account',
+                subtitle: 'Permanently delete your account',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Export Data - Coming Soon')),
-                  );
+                  _showDeleteAccountDialog(context, authProvider);
                 },
               ),
             ],
@@ -461,5 +496,98 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(
+      BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete your account?'),
+            SizedBox(height: 8),
+            Text(
+              'This action cannot be undone. All your data will be permanently deleted.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _deleteAccount(context, authProvider);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete Account'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(
+      BuildContext context, AuthProvider authProvider) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Deleting account...'),
+            ],
+          ),
+        ),
+      );
+
+      // Delete user account
+      await authProvider.deleteAccount();
+
+      // Clear history data
+      if (context.mounted) {
+        final historyProvider =
+            Provider.of<UserHistoryProvider>(context, listen: false);
+        await historyProvider.clearAllHistory();
+      }
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting account: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -147,6 +147,28 @@ class UserHistoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> clearAllHistory() async {
+    try {
+      // Clear all local data
+      _historyItems.clear();
+      _filteredItems.clear();
+      _stats.clear();
+      
+      // Clear cached data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_history_cache');
+      await prefs.remove('user_history_timestamp');
+      
+      // Clear from Firebase
+      await _historyService.clearUserHistory();
+      
+      notifyListeners();
+    } catch (e) {
+      log('Error clearing all history: $e');
+      rethrow;
+    }
+  }
+
   void setFilter(String filter) {
     _currentFilter = filter;
     _applyFilters();
