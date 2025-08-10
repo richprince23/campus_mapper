@@ -42,16 +42,21 @@ class SearchProvider extends ChangeNotifier {
     _context = context;
   }
 
-  void _addToHistory(String query, {String? category, int? resultsCount}) {
+  Future<void> _addToHistory(String query, {String? category, int? resultsCount}) async {
     if (_context != null) {
       final historyProvider = Provider.of<UserHistoryProvider>(_context!, listen: false);
-      final historyItem = UserHistory.searchPerformed(
-        userId: 'current_user', // TODO: Get from auth
-        searchQuery: query,
-        category: category,
-        resultsCount: resultsCount,
-      );
-      historyProvider.addHistoryItem(historyItem);
+      
+      // Get the actual user ID from the history service
+      final userId = await historyProvider.getCurrentUserId();
+      if (userId != null) {
+        final historyItem = UserHistory.searchPerformed(
+          userId: userId,
+          searchQuery: query,
+          category: category,
+          resultsCount: resultsCount,
+        );
+        historyProvider.addHistoryItem(historyItem);
+      }
     }
   }
 
@@ -180,7 +185,9 @@ class SearchProvider extends ChangeNotifier {
       }
 
       // Add to history
-      _addToHistory(query, resultsCount: results.length);
+      _addToHistory(query, resultsCount: results.length).catchError((e) {
+        print('Failed to add search to history: $e');
+      });
 
       return results;
     } catch (e) {
@@ -263,7 +270,9 @@ class SearchProvider extends ChangeNotifier {
       }
 
       // Add to history
-      _addToHistory(category, category: category, resultsCount: _searchResults.length);
+      _addToHistory(category, category: category, resultsCount: _searchResults.length).catchError((e) {
+        print('Failed to add category search to history: $e');
+      });
     } catch (e) {
       print('Category search error: $e');
       _searchResults = [];
@@ -326,7 +335,9 @@ class SearchProvider extends ChangeNotifier {
       }
 
       // Add to history
-      _addToHistory(category, category: category, resultsCount: _searchResults.length);
+      _addToHistory(category, category: category, resultsCount: _searchResults.length).catchError((e) {
+        print('Failed to add flexible category search to history: $e');
+      });
     } catch (e) {
       print('Flexible category search error: $e');
       _searchResults = [];
