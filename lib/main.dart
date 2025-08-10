@@ -3,6 +3,7 @@ import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
+import 'package:campus_mapper/features/Preferences/providers/preferences_provider.dart';
 import 'package:campus_mapper/features/Home/pages/main_screen.dart';
 import 'package:campus_mapper/firebase_options.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
@@ -35,6 +36,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => UserHistoryProvider()),
+        ChangeNotifierProvider(create: (_) => PreferencesProvider()),
       ],
       child: const MainApp(),
     ),
@@ -46,16 +48,20 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardDismissOnTap(
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: "Campus Mapper",
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        // Use dark or light theme based on system setting.
-        themeMode: ThemeMode.system,
-        home: MainScreen(),
-      ),
+    return Consumer<PreferencesProvider>(
+      builder: (context, preferencesProvider, child) {
+        return KeyboardDismissOnTap(
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: "Campus Mapper",
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            // Use theme preference from user settings
+            themeMode: preferencesProvider.themeMode,
+            home: MainScreen(),
+          ),
+        );
+      },
     );
   }
 }
