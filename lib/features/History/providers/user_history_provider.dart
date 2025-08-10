@@ -1,6 +1,8 @@
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:campus_mapper/features/History/services/user_history_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'dart:developer' show log;
 
 class UserHistoryProvider extends ChangeNotifier {
@@ -13,7 +15,7 @@ class UserHistoryProvider extends ChangeNotifier {
   String _errorMessage = '';
   String _currentFilter = 'all';
   String _searchQuery = '';
-  Map<String, int> _stats = {};
+  Map<String, dynamic> _stats = {};
   
   // Sync status
   bool _isSyncing = false;
@@ -25,12 +27,12 @@ class UserHistoryProvider extends ChangeNotifier {
   String get errorMessage => _errorMessage;
   String get currentFilter => _currentFilter;
   String get searchQuery => _searchQuery;
-  Map<String, int> get stats => _stats;
+  Map<String, dynamic> get stats => _stats;
   bool get isSyncing => _isSyncing;
   DateTime? get lastSyncTime => _lastSyncTime;
 
   UserHistoryProvider() {
-    loadHistory();
+    _loadHistoryWithCache();
   }
 
   Future<void> loadHistory({bool showLoading = true}) async {
@@ -49,6 +51,9 @@ class UserHistoryProvider extends ChangeNotifier {
       _stats = await _historyService.getHistoryStats();
       _lastSyncTime = DateTime.now();
       _applyFilters();
+      
+      // Cache the loaded data
+      _cacheHistory();
       
       _hasError = false;
       _errorMessage = '';
@@ -119,7 +124,7 @@ class UserHistoryProvider extends ChangeNotifier {
   Future<void> clearHistory() async {
     // Backup current items in case we need to restore
     final backupItems = List<UserHistory>.from(_historyItems);
-    final backupStats = Map<String, int>.from(_stats);
+    final backupStats = Map<String, dynamic>.from(_stats);
     
     try {
       // Clear local data for immediate UI update
@@ -383,6 +388,103 @@ class UserHistoryProvider extends ChangeNotifier {
     _hasError = false;
     _errorMessage = '';
     _lastSyncTime = null;
+    _clearCache();
     notifyListeners();
+  }
+
+  /// Load history with local caching for offline support
+  Future<void> _loadHistoryWithCache() async {
+    _isLoading = true;
+    _hasError = false;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      // First, try to load from cache for immediate display
+      await _loadFromCache();
+      
+      // Then load from Firestore and sync
+      await loadHistory(showLoading: false);
+    } catch (e) {
+      log('Error loading history with cache: $e');
+      _hasError = true;
+      _errorMessage = 'Failed to load history. Please check your connection.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cache history items locally
+  Future<void> _cacheHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = await _historyService.getCurrentUserId();
+      if (userId == null) return;
+
+      final cacheKey = 'history_cache_$userId';
+      final historyJson = _historyItems.map((item) => item.toCacheJson()).toList();
+      await prefs.setString(cacheKey, jsonEncode(historyJson));
+      
+      // Also cache stats
+      final statsKey = 'stats_cache_$userId';
+      await prefs.setString(statsKey, jsonEncode(_stats));
+      
+      log('History cached successfully');
+    } catch (e) {
+      log('Failed to cache history: $e');
+    }
+  }
+
+  /// Load history from local cache
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = await _historyService.getCurrentUserId();
+      if (userId == null) return;
+
+      final cacheKey = 'history_cache_$userId';
+      final cachedData = prefs.getString(cacheKey);
+      
+      if (cachedData != null) {
+        final List<dynamic> historyJson = jsonDecode(cachedData);
+        _historyItems = historyJson.map((json) {
+          // Convert cached JSON directly to UserHistory
+          return UserHistory.fromCachedJson(json);
+        }).toList();
+        
+        // Load cached stats
+        final statsKey = 'stats_cache_$userId';
+        final cachedStats = prefs.getString(statsKey);
+        if (cachedStats != null) {
+          _stats = Map<String, dynamic>.from(jsonDecode(cachedStats));
+        }
+        
+        _applyFilters();
+        log('Loaded ${_historyItems.length} items from cache');
+      }
+    } catch (e) {
+      log('Failed to load from cache: $e');
+      // If cache loading fails, continue with normal flow
+    }
+  }
+
+  /// Clear local cache
+  Future<void> _clearCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = await _historyService.getCurrentUserId();
+      if (userId == null) return;
+
+      final cacheKey = 'history_cache_$userId';
+      final statsKey = 'stats_cache_$userId';
+      
+      await prefs.remove(cacheKey);
+      await prefs.remove(statsKey);
+      
+      log('Cache cleared successfully');
+    } catch (e) {
+      log('Failed to clear cache: $e');
+    }
   }
 }
