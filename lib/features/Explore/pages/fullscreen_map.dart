@@ -24,7 +24,6 @@ class FullscreenMapScreen extends StatefulWidget {
 
 class _FullscreenMapScreenState extends State<FullscreenMapScreen> {
   GoogleMapController? _mapController;
-  MapType _currentMapType = MapType.normal;
 
   @override
   Widget build(BuildContext context) {
@@ -32,26 +31,30 @@ class _FullscreenMapScreenState extends State<FullscreenMapScreen> {
       body: Stack(
         children: [
           // Fullscreen Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: widget.initialCameraPosition ?? 
-                  const LatLng(5.362312610147424, -0.633134506275042),
-              zoom: widget.initialZoom,
-            ),
-            mapType: _currentMapType,
-            myLocationButtonEnabled: false, // We'll add our own
-            myLocationEnabled: true,
-            markers: widget.markers,
-            polylines: widget.polylines,
-            onMapCreated: (controller) {
-              _mapController = controller;
+          Consumer<MapProvider>(
+            builder: (context, mapProvider, child) {
+              return GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: widget.initialCameraPosition ?? 
+                      const LatLng(5.362312610147424, -0.633134506275042),
+                  zoom: widget.initialZoom,
+                ),
+                mapType: mapProvider.currentMapType,
+                myLocationButtonEnabled: false, // We'll add our own
+                myLocationEnabled: true,
+                markers: widget.markers,
+                polylines: widget.polylines,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                },
+                zoomControlsEnabled: false,
+                compassEnabled: true,
+                rotateGesturesEnabled: true,
+                scrollGesturesEnabled: true,
+                tiltGesturesEnabled: true,
+                zoomGesturesEnabled: true,
+              );
             },
-            zoomControlsEnabled: false,
-            compassEnabled: true,
-            rotateGesturesEnabled: true,
-            scrollGesturesEnabled: true,
-            tiltGesturesEnabled: true,
-            zoomGesturesEnabled: true,
           ),
 
           // Top controls bar
@@ -105,9 +108,9 @@ class _FullscreenMapScreenState extends State<FullscreenMapScreen> {
                     ),
                     tooltip: 'Map type',
                     onSelected: (MapType type) {
-                      setState(() {
-                        _currentMapType = type;
-                      });
+                      // Update map type through MapProvider
+                      final mapProvider = Provider.of<MapProvider>(context, listen: false);
+                      mapProvider.setMapType(type);
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
