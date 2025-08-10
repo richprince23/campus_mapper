@@ -38,6 +38,17 @@ class UserHistory {
     );
   }
 
+  factory UserHistory.fromCachedJson(Map<String, dynamic> json) {
+    return UserHistory(
+      id: json['id'],
+      userId: json['user_id'] ?? '',
+      actionType: _parseActionType(json['action_type']),
+      details: json['details'] ?? {},
+      timestamp: DateTime.parse(json['timestamp']),
+      location: json['location'],
+    );
+  }
+
   static HistoryActionType _parseActionType(String? actionTypeString) {
     switch (actionTypeString) {
       case 'place_added':
@@ -59,10 +70,22 @@ class UserHistory {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'id': id,
       'user_id': userId,
       'action_type': actionTypeToString(actionType),
       'details': details,
       'timestamp': Timestamp.fromDate(timestamp),
+      'location': location,
+    };
+  }
+
+  Map<String, dynamic> toCacheJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'action_type': actionTypeToString(actionType),
+      'details': details,
+      'timestamp': timestamp.toIso8601String(),
       'location': location,
     };
   }
@@ -133,6 +156,7 @@ class UserHistory {
           'from_place': fromPlace,
           'distance': distance,
           'duration': duration,
+          'calories': (distance / 1000) * 65, // 65 calories per km
         }
       },
       timestamp: DateTime.now(),
@@ -248,6 +272,7 @@ class UserHistory {
           'from_place': fromPlace,
           'distance': distance,
           'duration': duration,
+          'calories': (distance / 1000) * 65, // 65 calories per km
         }
       },
       timestamp: DateTime.now(),
@@ -287,7 +312,8 @@ class UserHistory {
       case HistoryActionType.journeyCompleted:
         final distance = metadata['distance'];
         final duration = metadata['duration'];
-        return 'Distance: ${distance?.toStringAsFixed(1)}km, Duration: ${duration}min';
+        final calories = metadata['calories'];
+        return 'Distance: ${(distance ?? 0) / 1000}km, Duration: ${duration}min, Calories: ${calories?.toStringAsFixed(0) ?? '0'}';
       case HistoryActionType.placeVisited:
         return metadata['category'];
       case HistoryActionType.placeFavorited:
@@ -300,6 +326,11 @@ class UserHistory {
         return null;
       case HistoryActionType.routeCalculated:
         final fromPlace = metadata['from_place'];
+        final distance = metadata['distance'];
+        final calories = metadata['calories'];
+        if (fromPlace != null && distance != null && calories != null) {
+          return 'From $fromPlace • ${(distance / 1000).toStringAsFixed(1)}km • ${calories.toStringAsFixed(0)} cal';
+        }
         return fromPlace != null ? 'From $fromPlace' : null;
     }
   }
