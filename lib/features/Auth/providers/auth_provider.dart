@@ -210,34 +210,4 @@ class AuthProvider extends ChangeNotifier {
     return _currentUser?.photoURL;
   }
   
-  /// Check if email is verified
-  bool get isEmailVerified {
-    return _currentUser?.emailVerified ?? false;
-  }
-  
-  /// Send email verification
-  Future<bool> sendEmailVerification() async {
-    try {
-      if (_currentUser != null && !_currentUser!.emailVerified) {
-        await _currentUser!.sendEmailVerification();
-        log('Email verification sent');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      _setError(e.toString());
-      return false;
-    }
-  }
-  
-  /// Reload user to get updated email verification status
-  Future<void> reloadUser() async {
-    try {
-      await _currentUser?.reload();
-      _currentUser = _authService.currentUser;
-      notifyListeners();
-    } catch (e) {
-      log('Error reloading user: $e');
-    }
-  }
 }
