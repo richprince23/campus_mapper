@@ -11,6 +11,7 @@ import 'package:campus_mapper/features/Explore/pages/active_journey.dart';
 import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart'
     as explore_search;
 import 'package:campus_mapper/features/Explore/pages/add_location_screen.dart';
+import 'package:campus_mapper/features/Explore/pages/fullscreen_map.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
@@ -291,6 +292,33 @@ class _ExploreScreenState extends State<ExploreScreen>
                       },
                     ),
                   ),
+
+                // Fullscreen toggle button
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(51),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: _toggleFullscreen,
+                      icon: const Icon(
+                        Icons.fullscreen,
+                        color: Colors.black87,
+                      ),
+                      tooltip: 'Fullscreen',
+                    ),
+                  ),
+                ),
 
                 // Categories Panel (only show when no route is available and not loading)
                 if (!_routeAvailable && !_isLoadingRoute)
@@ -869,6 +897,30 @@ class _ExploreScreenState extends State<ExploreScreen>
         }
       }
       await Future.delayed(Duration(milliseconds: 200));
+    }
+  }
+
+  void _toggleFullscreen() async {
+    // Get current camera position and zoom level
+    final zoom = await _mapController.getZoomLevel();
+    final region = await _mapController.getVisibleRegion();
+    
+    if (mounted) {
+      final center = LatLng(
+        (region.northeast.latitude + region.southwest.latitude) / 2,
+        (region.northeast.longitude + region.southwest.longitude) / 2,
+      );
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => FullscreenMapScreen(
+            markers: context.read<MapProvider>().markers,
+            polylines: _polylines,
+            initialCameraPosition: center,
+            initialZoom: zoom,
+          ),
+        ),
+      );
     }
   }
 
