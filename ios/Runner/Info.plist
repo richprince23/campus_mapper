@@ -39,9 +39,12 @@
 	<string>This app needs access to location when in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location when open to show your position on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to location at all times to provide accurate navigation.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>This app uses motion sensors to detect if you&apos;re walking, running, or in a vehicle to calculate calories accurately.</string>
 	<key>NSCameraUsageDescription</key>
+	<string>
 	<string>This app uses camera to upload photos for locations and user profiles</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app uses microphone when using camera</string>

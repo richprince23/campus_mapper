@@ -196,23 +196,24 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
+            final scaffoldContext = context;
             showDialog(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (dialogContext) => AlertDialog(
                 title: const Text('End Journey?'),
                 content:
                     const Text('Are you sure you want to end your journey?'),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: const Text('No'),
                   ),
                   TextButton(
                     onPressed: () async {
-                      Navigator.of(context).pop();
+                      Navigator.of(dialogContext).pop();
                       await _saveJourneyCancellation();
                       if (mounted) {
-                        Navigator.of(context).pop();
+                        Navigator.of(scaffoldContext).pop();
                       }
                     },
                     child: const Text('Yes'),
@@ -357,9 +358,10 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
     if (!authProvider.isLoggedIn) return;
 
     try {
-      final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+      final historyProvider =
+          Provider.of<UserHistoryProvider>(context, listen: false);
       final journeyDuration = DateTime.now().difference(_journeyStartTime!);
-      
+
       // Create journey completion history with actual values
       final historyItem = UserHistory.journeyCompleted(
         userId: authProvider.currentUser!.uid,
@@ -384,17 +386,21 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
     if (!authProvider.isLoggedIn) return;
 
     try {
-      final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+      final historyProvider =
+          Provider.of<UserHistoryProvider>(context, listen: false);
       final journeyDuration = DateTime.now().difference(_journeyStartTime!);
-      
+
       // Create journey completion history with partial values (cancelled journey)
       final historyItem = UserHistory.journeyCompleted(
         userId: authProvider.currentUser!.uid,
-        activityId: 'journey_cancelled_${DateTime.now().millisecondsSinceEpoch}',
+        activityId:
+            'journey_cancelled_${DateTime.now().millisecondsSinceEpoch}',
         fromPlace: 'Current Location',
         toPlace: '${widget.destinationName} (Cancelled)',
-        distance: _distanceCovered, // Use actual distance covered before cancellation
-        duration: journeyDuration.inMinutes, // Use actual duration before cancellation
+        distance:
+            _distanceCovered, // Use actual distance covered before cancellation
+        duration: journeyDuration
+            .inMinutes, // Use actual duration before cancellation
         latitude: widget.destinationLocation.latitude,
         longitude: widget.destinationLocation.longitude,
       );
