@@ -23,7 +23,7 @@ class UserHistoryItemTile extends StatelessWidget {
           horizontal: 16,
           vertical: 8,
         ),
-        leading: _buildLeadingIcon(context),
+        // leading: _buildLeadingIcon(context),
         title: Text(
           historyItem.displayTitle,
           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -56,7 +56,8 @@ class UserHistoryItemTile extends StatelessWidget {
                   _formatTimestamp(historyItem.timestamp),
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                    color:
+                        Theme.of(context).colorScheme.onSurface.withAlpha(128),
                   ),
                 ),
               ],
@@ -90,50 +91,52 @@ class UserHistoryItemTile extends StatelessWidget {
     );
   }
 
-  Widget _buildLeadingIcon(BuildContext context) {
-    IconData iconData;
-    Color iconColor = Theme.of(context).colorScheme.primary;
+  // Widget _buildLeadingIcon(BuildContext context) {
+  //   IconData iconData;
+  //   Color iconColor = Theme.of(context).colorScheme.primary;
 
-    switch (historyItem.actionType) {
-      case HistoryActionType.searchPerformed:
-        iconData = HugeIcons.strokeRoundedSearch01;
-        break;
-      case HistoryActionType.journeyCompleted:
-        iconData = HugeIcons.strokeRoundedRoute01;
-        iconColor = Theme.of(context).colorScheme.secondary;
-        break;
-      case HistoryActionType.placeVisited:
-        iconData = HugeIcons.strokeRoundedLocation01;
-        iconColor = Theme.of(context).colorScheme.tertiary;
-        break;
-      case HistoryActionType.placeFavorited:
-        iconData = HugeIcons.strokeRoundedFavourite;
-        iconColor = Colors.red;
-        break;
-      case HistoryActionType.placeAdded:
-        iconData = HugeIcons.strokeRoundedLocationAdd01;
-        iconColor = Colors.green;
-        break;
-      case HistoryActionType.routeCalculated:
-        iconData = HugeIcons.strokeRoundedRoute01;
-        iconColor = Colors.blue;
-        break;
-    }
+  //   switch (historyItem.actionType) {
+  //     case HistoryActionType.searchPerformed:
+  //       iconData = HugeIcons.strokeRoundedSearch01;
+  //       break;
+  //     case HistoryActionType.journeyCompleted:
+  //       iconData = HugeIcons.strokeRoundedRoute01;
+  //       iconColor = Theme.of(context).colorScheme.secondary;
+  //       break;
+  //     case HistoryActionType.placeVisited:
+  //       iconData = HugeIcons.strokeRoundedLocation01;
+  //       iconColor = Theme.of(context).colorScheme.tertiary;
+  //       break;
+  //     case HistoryActionType.placeFavorited:
+  //       iconData = HugeIcons.strokeRoundedFavourite;
+  //       iconColor = Colors.red;
+  //       break;
+  //     case HistoryActionType.placeAdded:
+  //       iconData = HugeIcons.strokeRoundedLocationAdd01;
+  //       iconColor = Colors.green;
+  //       break;
+  //     case HistoryActionType.routeCalculated:
+  //       iconData = HugeIcons.strokeRoundedRoute01;
+  //       iconColor = Colors.blue;
+  //       break;
+  //     default:
+  //       print("default hit");
+  //   }
 
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: iconColor.withAlpha(26),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(
-        iconData,
-        color: iconColor,
-        size: 24,
-      ),
-    );
-  }
+  //   return Container(
+  //     width: 48,
+  //     height: 48,
+  //     decoration: BoxDecoration(
+  //       color: iconColor.withAlpha(26),
+  //       borderRadius: BorderRadius.circular(8),
+  //     ),
+  //     child: Icon(
+  //       iconData,
+  //       color: iconColor,
+  //       size: 24,
+  //     ),
+  //   );
+  // }
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();

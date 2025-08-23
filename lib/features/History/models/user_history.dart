@@ -7,6 +7,7 @@ enum HistoryActionType {
   placeFavorited,
   searchPerformed,
   routeCalculated,
+  locationApproved,
 }
 
 class UserHistory {
@@ -63,6 +64,8 @@ class UserHistory {
         return HistoryActionType.searchPerformed;
       case 'route_calculated':
         return HistoryActionType.routeCalculated;
+      case 'location_approved':
+        return HistoryActionType.locationApproved;
       default:
         return HistoryActionType.placeVisited;
     }
@@ -104,6 +107,8 @@ class UserHistory {
         return 'search_performed';
       case HistoryActionType.routeCalculated:
         return 'route_calculated';
+      case HistoryActionType.locationApproved:
+        return 'location_approved';
     }
   }
 
@@ -254,6 +259,35 @@ class UserHistory {
     );
   }
 
+  factory UserHistory.locationApproved({
+    required String userId,
+    required String placeId,
+    required String placeName,
+    required String category,
+    double? latitude,
+    double? longitude,
+  }) {
+    return UserHistory(
+      userId: userId,
+      actionType: HistoryActionType.locationApproved,
+      details: {
+        'place_id': placeId,
+        'place_name': placeName,
+        'metadata': {
+          'category': category,
+          'action': 'location_approved',
+        }
+      },
+      timestamp: DateTime.now(),
+      location: latitude != null && longitude != null
+          ? {
+              'latitude': latitude,
+              'longitude': longitude,
+            }
+          : null,
+    );
+  }
+
   factory UserHistory.routeCalculated({
     required String userId,
     required String fromPlace,
@@ -301,6 +335,8 @@ class UserHistory {
         return 'Searched for $placeName';
       case HistoryActionType.routeCalculated:
         return 'Route to $placeName';
+      case HistoryActionType.locationApproved:
+        return 'Approved $placeName';
     }
   }
 
@@ -332,6 +368,8 @@ class UserHistory {
           return 'From $fromPlace • ${(distance / 1000).toStringAsFixed(1)}km • ${calories.toStringAsFixed(0)} cal';
         }
         return fromPlace != null ? 'From $fromPlace' : null;
+      case HistoryActionType.locationApproved:
+        return metadata['category'];
     }
   }
 
@@ -350,6 +388,8 @@ class UserHistory {
         return 'search';
       case HistoryActionType.routeCalculated:
         return 'directions';
+      case HistoryActionType.locationApproved:
+        return 'verified';
     }
   }
 }

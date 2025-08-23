@@ -225,6 +225,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           // Navigate to location details
         }
         break;
+      default:
+        print("default hit");
     }
   }
 
