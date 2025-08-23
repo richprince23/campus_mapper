@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
-class HistoryStatsCard extends StatelessWidget {
+class HistoryStatsCard extends StatefulWidget {
   const HistoryStatsCard({super.key});
 
+  @override
+  State<HistoryStatsCard> createState() => _HistoryStatsCardState();
+}
+
+class _HistoryStatsCardState extends State<HistoryStatsCard> {
   @override
   Widget build(BuildContext context) {
     return Consumer<HistoryProvider>(
@@ -14,7 +19,6 @@ class HistoryStatsCard extends StatelessWidget {
 
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(12),
@@ -23,80 +27,85 @@ class HistoryStatsCard extends StatelessWidget {
             ),
           ),
           child: ExpansionTile(
-              title: Text(
-                'Activity Summary',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+            onExpansionChanged: (value) {
+              // if (mounted) {
+              //   setState(() {
+              //     _isExpanded = value;
+              //   });
+              // }
+            },
+            initiallyExpanded: false,
+            tilePadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            leading: Icon(
+              HugeIcons.strokeRoundedAnalytics01,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Activity Summary',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            subtitle: Text(
+              '${stats['total']?.toString() ?? '0'} total activities',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color:
+                        Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                  ),
+            ),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      'Total',
+                      stats['total']?.toString() ?? '0',
+                      HugeIcons.strokeRoundedTime04,
+                      Theme.of(context).colorScheme.primary,
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      'Searches',
+                      stats['searches']?.toString() ?? '0',
+                      HugeIcons.strokeRoundedSearch01,
+                      Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                ],
               ),
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          HugeIcons.strokeRoundedAnalytics01,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Activity Summary',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                      ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      'Routes',
+                      stats['navigations']?.toString() ?? '0',
+                      HugeIcons.strokeRoundedRoute01,
+                      Theme.of(context).colorScheme.tertiary,
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatItem(
-                            context,
-                            'Total',
-                            stats['total']?.toString() ?? '0',
-                            HugeIcons.strokeRoundedTime04,
-                            Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatItem(
-                            context,
-                            'Searches',
-                            stats['searches']?.toString() ?? '0',
-                            HugeIcons.strokeRoundedSearch01,
-                            Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatItem(
-                            context,
-                            'Routes',
-                            stats['navigations']?.toString() ?? '0',
-                            HugeIcons.strokeRoundedRoute01,
-                            Theme.of(context).colorScheme.tertiary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatItem(
-                            context,
-                            'Places',
-                            stats['locationViews']?.toString() ?? '0',
-                            HugeIcons.strokeRoundedLocation01,
-                            Colors.green,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      'Places',
+                      stats['locationViews']?.toString() ?? '0',
+                      HugeIcons.strokeRoundedLocation01,
+                      Colors.green,
                     ),
-                  ],
-                ),
-              ]),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );

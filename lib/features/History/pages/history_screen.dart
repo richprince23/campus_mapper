@@ -1,3 +1,6 @@
+import 'package:campus_mapper/features/Explore/models/location.dart';
+import 'package:campus_mapper/features/Explore/pages/enhanced_search_screen.dart';
+import 'package:campus_mapper/features/Explore/pages/location_details_screen.dart';
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:campus_mapper/features/History/widgets/user_history_item_tile.dart';
@@ -175,32 +178,78 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _handleHistoryItemTap(BuildContext context, UserHistory item) {
     switch (item.actionType) {
       case HistoryActionType.searchPerformed:
-        // Navigate back to search with the query
+        // Navigate to search screen with the query
         final query = item.details['metadata']?['query'] as String?;
+        
         if (query != null) {
-          Navigator.of(context).pop(query);
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EnhancedSearchScreen(
+                initialQuery: query,
+              ),
+            ),
+          ).then((selectedLocation) {
+            if (selectedLocation != null && selectedLocation is Location && mounted) {
+              // Return the selected location to the calling screen (if any)
+              Navigator.of(context).pop(selectedLocation);
+            }
+          });
         }
         break;
+        
       case HistoryActionType.journeyCompleted:
       case HistoryActionType.routeCalculated:
-        // Navigate to location details or re-navigate
-        final placeId = item.details['place_id'] as String?;
-        if (placeId != null) {
-          // Navigate to location details
-          // This would need the location details screen
-        }
+        // Navigate to location details for navigation history
+        _navigateToLocationFromHistory(context, item);
         break;
+        
       case HistoryActionType.placeVisited:
       case HistoryActionType.placeFavorited:
       case HistoryActionType.placeAdded:
-        // Navigate to location details
-        final placeId = item.details['place_id'] as String?;
-        if (placeId != null) {
-          // Navigate to location details
-        }
+        // Navigate to location details for place history
+        _navigateToLocationFromHistory(context, item);
         break;
+        
       default:
-        debugPrint("default hit");
+        debugPrint("Unhandled history action type: ${item.actionType}");
+    }
+  }
+
+  void _navigateToLocationFromHistory(BuildContext context, UserHistory item) {
+    final placeId = item.details['place_id'] as String?;
+    final placeName = item.details['place_name'] as String?;
+    final category = item.details['metadata']?['category'] as String?;
+    final latitude = item.location?['latitude'] as double?;
+    final longitude = item.location?['longitude'] as double?;
+
+    if (placeId != null && placeName != null && latitude != null && longitude != null) {
+      // Create a Location object from history data
+      final location = Location(
+        id: placeId,
+        name: placeName,
+        category: category ?? 'general',
+        description: 'Location from history',
+        location: {
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+      );
+
+      // Navigate to location details
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LocationDetailScreen(location: location),
+        ),
+      );
+    } else {
+      // Show error if location data is incomplete
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load location details from history'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      debugPrint('Incomplete location data in history item: $placeId, $placeName, $latitude, $longitude');
     }
   }
 

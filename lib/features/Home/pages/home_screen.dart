@@ -57,8 +57,10 @@ class HomeScreenState extends State<HomeScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Campus Explorer', // Can be updated with real user name from auth
+                Text(
+                  Provider.of<AuthProvider>(context, listen: false)
+                          .userDisplayName ??
+                      'Campus Explorer',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Text(

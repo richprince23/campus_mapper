@@ -1,9 +1,13 @@
 import 'dart:async';
 
+import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
+import 'package:campus_mapper/features/History/models/user_history.dart';
+import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 
 class ActiveJourneyScreen extends StatefulWidget {
   final String destinationName;
@@ -152,9 +156,12 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Return to explore screen
+              await _saveJourneyCompletion();
+              if (mounted) {
+                Navigator.of(context).pop(); // Return to explore screen
+              }
             },
             child: const Text('Finish'),
           ),
@@ -201,9 +208,12 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
                     child: const Text('No'),
                   ),
                   TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pop();
+                      await _saveJourneyCancellation();
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: const Text('Yes'),
                   ),
@@ -340,5 +350,59 @@ class _ActiveJourneyScreenState extends State<ActiveJourneyScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _saveJourneyCompletion() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isLoggedIn) return;
+
+    try {
+      final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+      final journeyDuration = DateTime.now().difference(_journeyStartTime!);
+      
+      // Create journey completion history with actual values
+      final historyItem = UserHistory.journeyCompleted(
+        userId: authProvider.currentUser!.uid,
+        activityId: 'journey_${DateTime.now().millisecondsSinceEpoch}',
+        fromPlace: 'Current Location',
+        toPlace: widget.destinationName,
+        distance: _distanceCovered, // Use actual distance covered
+        duration: journeyDuration.inMinutes, // Use actual duration
+        latitude: widget.destinationLocation.latitude,
+        longitude: widget.destinationLocation.longitude,
+      );
+
+      await historyProvider.addHistoryItem(historyItem);
+    } catch (e) {
+      debugPrint('Error saving journey completion: $e');
+      // Don't block the user if history fails to save
+    }
+  }
+
+  Future<void> _saveJourneyCancellation() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isLoggedIn) return;
+
+    try {
+      final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+      final journeyDuration = DateTime.now().difference(_journeyStartTime!);
+      
+      // Create journey completion history with partial values (cancelled journey)
+      final historyItem = UserHistory.journeyCompleted(
+        userId: authProvider.currentUser!.uid,
+        activityId: 'journey_cancelled_${DateTime.now().millisecondsSinceEpoch}',
+        fromPlace: 'Current Location',
+        toPlace: '${widget.destinationName} (Cancelled)',
+        distance: _distanceCovered, // Use actual distance covered before cancellation
+        duration: journeyDuration.inMinutes, // Use actual duration before cancellation
+        latitude: widget.destinationLocation.latitude,
+        longitude: widget.destinationLocation.longitude,
+      );
+
+      await historyProvider.addHistoryItem(historyItem);
+    } catch (e) {
+      debugPrint('Error saving journey cancellation: $e');
+      // Don't block the user if history fails to save
+    }
   }
 }

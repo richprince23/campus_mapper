@@ -241,29 +241,49 @@ class UserHistoryService {
     }
   }
 
-  /// Get recently visited places
+  /// Get recently visited places (unique only)
   Future<List<Map<String, dynamic>>> getRecentlyVisitedPlaces({int limit = 10}) async {
     final userId = await _userId;
     if (userId == null) return [];
 
     try {
+      // Get more items to ensure we have enough unique places after deduplication
+      // We'll fetch up to limit * 3 to account for potential duplicates, with a minimum of 20
+      final fetchLimit = (limit * 3).clamp(20, 100);
+      
       final snapshot = await _historyCollection
           .where('user_id', isEqualTo: userId)
           .where('action_type', isEqualTo: 'place_visited')
           .orderBy('timestamp', descending: true)
-          .limit(limit)
+          .limit(fetchLimit)
           .get();
 
-      return snapshot.docs.map((doc) {
+      // Map to track unique places by place_id
+      final Map<String, Map<String, dynamic>> uniquePlaces = {};
+      
+      for (final doc in snapshot.docs) {
         final history = UserHistory.fromFirestore(doc);
-        return {
-          'place_id': history.details['place_id'],
-          'place_name': history.details['place_name'],
-          'category': history.details['metadata']?['category'],
-          'last_visited': history.timestamp,
-          'location': history.location,
-        };
-      }).toList();
+        final placeId = history.details['place_id'] as String?;
+        
+        if (placeId != null && !uniquePlaces.containsKey(placeId)) {
+          // Only add if we haven't seen this place_id before
+          uniquePlaces[placeId] = {
+            'place_id': placeId,
+            'place_name': history.details['place_name'],
+            'category': history.details['metadata']?['category'],
+            'last_visited': history.timestamp,
+            'location': history.location,
+          };
+          
+          // Stop when we have enough unique places
+          if (uniquePlaces.length >= limit) {
+            break;
+          }
+        }
+      }
+
+      // Return the unique places as a list, maintaining the order by last visited
+      return uniquePlaces.values.toList();
     } catch (e) {
       print('Error getting recently visited places: $e');
       return [];
