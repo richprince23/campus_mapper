@@ -56,3 +56,5 @@ app.*.map.json
 *firebase_options.dart
 /lib/firebase_options.dart
 ios/Runner/GoogleService-Info.plist
+upload-keystore.jks
+release.keystore

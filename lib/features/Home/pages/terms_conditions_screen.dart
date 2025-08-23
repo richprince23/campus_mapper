@@ -59,7 +59,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Last updated: December 2024',
+                    'Last updated: August 2025',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
