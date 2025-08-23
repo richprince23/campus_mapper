@@ -3,6 +3,7 @@ import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:campus_mapper/features/Home/pages/edit_profile_screen.dart';
+import 'package:campus_mapper/features/Home/pages/terms_conditions_screen.dart';
 import 'package:campus_mapper/features/Preferences/pages/preferences_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -340,20 +341,12 @@ class ProfileScreen extends StatelessWidget {
                 icon: HugeIcons.strokeRoundedNote,
                 title: 'Terms & Conditions',
                 subtitle: 'View terms and conditions',
-                onTap: () async {
-                  const url = 'https://suptle.com/terms-and-conditions';
-                  if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(Uri.parse(url),
-                        mode: LaunchMode.externalApplication);
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Could not open terms and conditions')),
-                      );
-                    }
-                  }
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const TermsConditionsScreen(),
+                    ),
+                  );
                 },
               ),
               _buildActionItem(
