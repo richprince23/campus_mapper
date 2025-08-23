@@ -1,24 +1,26 @@
 import 'dart:developer' show log;
 import 'dart:ui' as ui;
 
+import 'package:campus_mapper/core/components/custom_marker.dart';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/Preferences/providers/preferences_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:widget_to_marker/widget_to_marker.dart';
 
 class MapProvider extends ChangeNotifier {
   final Set<Marker> _markers = {};
   // current user location
   LatLng? _currentUserLocation;
-  
+
   // Map preferences
   MapType _currentMapType = MapType.normal;
   PreferencesProvider? _preferencesProvider;
 
   LatLng? get currentUserLocation => _currentUserLocation;
   MapType get currentMapType => _currentMapType;
-  
+
   // user location marker
   Marker? _userLocationMarker;
 
@@ -53,85 +55,88 @@ class MapProvider extends ChangeNotifier {
   }
 
   /// Get custom marker icon based on category
-  Future<BitmapDescriptor> getCustomMarker(String category) async {
-    try {
-      final iconData = _getCategoryIcon(category);
-      final color = _getCategoryColor(category);
-      
-      // Create custom marker from icon
-      final customMarker = await _createCustomMarker(
-        iconData: iconData,
-        color: color,
-        size: 48.0,
-      );
-      
-      return customMarker;
-    } catch (e) {
-      log('Error creating custom marker: $e');
-      return BitmapDescriptor.defaultMarkerWithHue(_getCategoryHue(category));
-    }
-  }
-  
+  // Future<BitmapDescriptor> getCustomMarker(String category) async {
+  //   try {
+  //     final iconData = _getCategoryIcon(category);
+  //     final color = _getCategoryColor(category);
+
+  //     // Create custom marker from icon
+  //     // final customMarker = await _createCustomMarker(
+  //     //   iconData: iconData,
+  //     //   color: color,
+  //     //   size: 48.0,
+  //     // );
+
+  //     // return customMarker;
+  //     return CustomMarker(
+  //       icon: iconData,
+  //     );
+  //   } catch (e) {
+  //     log('Error creating custom marker: $e');
+  //     return BitmapDescriptor.defaultMarkerWithHue(_getCategoryHue(category));
+  //   }
+  // }
+
   /// Create custom marker from icon data
-  Future<BitmapDescriptor> _createCustomMarker({
-    required IconData iconData,
-    required Color color,
-    double size = 48.0,
-  }) async {
-    try {
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      
-      // Draw circle background
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.fill;
-      
-      final center = Offset(size / 2, size / 2);
-      canvas.drawCircle(center, size / 2 - 2, paint);
-      
-      // Draw white border
-      final borderPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0;
-        
-      canvas.drawCircle(center, size / 2 - 2, borderPaint);
-      
-      // Draw icon
-      final textPainter = TextPainter(
-        textDirection: TextDirection.ltr,
-      );
-      
-      textPainter.text = TextSpan(
-        text: String.fromCharCode(iconData.codePoint),
-        style: TextStyle(
-          fontSize: size * 0.5,
-          fontFamily: iconData.fontFamily,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      
-      textPainter.layout();
-      
-      final iconOffset = Offset(
-        (size - textPainter.width) / 2,
-        (size - textPainter.height) / 2,
-      );
-      
-      textPainter.paint(canvas, iconOffset);
-      
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(size.toInt(), size.toInt());
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      
-      return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
-    } catch (e) {
-      log('Error creating custom marker: $e');
-      return BitmapDescriptor.defaultMarker;
-    }
-  }
+  // Future<BitmapDescriptor> _createCustomMarker({
+  //   required IconData iconData,
+  //   required Color color,
+  //   double size = 48.0,
+  // }) async {
+  //   try {
+  //     final recorder = ui.PictureRecorder();
+  //     final canvas = Canvas(recorder);
+
+  //     // Draw circle background
+  //     final paint = Paint()
+  //       ..color = color
+  //       ..style = PaintingStyle.fill;
+
+  //     final center = Offset(size / 2, size / 2);
+  //     canvas.drawCircle(center, size / 2 - 2, paint);
+
+  //     // Draw white border
+  //     final borderPaint = Paint()
+  //       ..color = Colors.white
+  //       ..style = PaintingStyle.stroke
+  //       ..strokeWidth = 3.0;
+
+  //     canvas.drawCircle(center, size / 2 - 2, borderPaint);
+
+  //     // Draw icon
+  //     final textPainter = TextPainter(
+  //       textDirection: TextDirection.ltr,
+  //     );
+
+  //     textPainter.text = TextSpan(
+  //       text: String.fromCharCode(iconData.codePoint),
+  //       style: TextStyle(
+  //         fontSize: size * 0.5,
+  //         fontFamily: iconData.fontFamily,
+  //         color: Colors.white,
+  //         fontWeight: FontWeight.bold,
+  //       ),
+  //     );
+
+  //     textPainter.layout();
+
+  //     final iconOffset = Offset(
+  //       (size - textPainter.width) / 2,
+  //       (size - textPainter.height) / 2,
+  //     );
+
+  //     textPainter.paint(canvas, iconOffset);
+
+  //     final picture = recorder.endRecording();
+  //     final image = await picture.toImage(size.toInt(), size.toInt());
+  //     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+
+  //     return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+  //   } catch (e) {
+  //     log('Error creating custom marker: $e');
+  //     return BitmapDescriptor.defaultMarker;
+  //   }
+  // }
 
   /// Get category-specific icon
   IconData _getCategoryIcon(String category) {
@@ -206,7 +211,7 @@ class MapProvider extends ChangeNotifier {
         return HugeIcons.strokeRoundedLocation01;
     }
   }
-  
+
   /// Get category-specific color
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
@@ -280,44 +285,43 @@ class MapProvider extends ChangeNotifier {
         return Colors.blue;
     }
   }
-  
-  double _getCategoryHue(String category) {
+
+  Color _getCategoryHue(String category) {
     switch (category.toLowerCase()) {
       case 'class':
       case 'classes':
-        return BitmapDescriptor.hueAzure;
+        return Color.fromARGB(255, 0, 128, 255);
       case 'food':
       case 'restaurant':
       case 'bars & pubs':
-        return BitmapDescriptor.hueOrange;
+        return Color.fromARGB(255, 255, 165, 0);
       case 'pharmacy':
       case 'pharmacies':
       case 'hospital':
-        return BitmapDescriptor.hueRed;
+        return Color.fromARGB(255, 255, 0, 0);
       case 'office':
       case 'offices':
-        return BitmapDescriptor.hueViolet;
+        return Color.fromARGB(255, 148, 0, 211);
       case 'atm':
       case 'atms':
-        return BitmapDescriptor.hueCyan;
+        return Color.fromARGB(255, 0, 188, 212);
       case 'gym':
       case 'gyms':
-        return BitmapDescriptor.hueYellow;
+        return Color.fromARGB(255, 255, 255, 0);
       case 'hostels':
       case 'hostel':
-        return BitmapDescriptor.hueMagenta;
+        return Color.fromARGB(255, 255, 0, 255);
       case 'store':
       case 'shop':
       case 'shopping centers':
-        return BitmapDescriptor.hueGreen;
+        return Color.fromARGB(255, 76, 175, 80);
       case 'church':
       case 'churches':
-        return BitmapDescriptor.hueRose;
+        return Color.fromARGB(255, 255, 0, 255);
       default:
-        return BitmapDescriptor.hueRed;
+        return Color.fromARGB(255, 255, 0, 0);
     }
   }
-
 
   void addMarker(Location data) async {
     try {
@@ -336,7 +340,15 @@ class MapProvider extends ChangeNotifier {
             },
           ),
           draggable: false,
-          icon: await getCustomMarker(data.category),
+          icon: await CustomMarker(
+            icon: _getCategoryIcon(data.category),
+            color: _getCategoryColor(data.category),
+            iconColor: _getCategoryHue(data.category),
+          ).toBitmapDescriptor(
+            logicalSize: const Size(80, 80),
+            imageSize: const Size(80, 80),
+          ),
+          zIndexInt: 5,
         ),
       );
       notifyListeners();
@@ -345,15 +357,17 @@ class MapProvider extends ChangeNotifier {
     }
   }
 
-  void addUserLocationMarker(LatLng position) {
+  void addUserLocationMarker(LatLng position) async {
     try {
       _markers.add(
         Marker(
           markerId: const MarkerId('user_location'),
           position: position,
           infoWindow: const InfoWindow(title: 'Your Location'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          zIndexInt: 2, // Higher zIndex to appear above other markers
+          // icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: await CustomMarker(icon: Icons.person).toBitmapDescriptor(
+              logicalSize: const Size(80, 80), imageSize: const Size(80, 80)),
+          zIndexInt: 5, // Higher zIndex to appear above other markers
         ),
       );
       notifyListeners();
@@ -374,7 +388,7 @@ class MapProvider extends ChangeNotifier {
   void setPreferencesProvider(PreferencesProvider preferencesProvider) {
     _preferencesProvider = preferencesProvider;
     _updateMapTypeFromPreferences();
-    
+
     // Listen to preference changes
     preferencesProvider.addListener(_updateMapTypeFromPreferences);
   }
@@ -407,7 +421,7 @@ class MapProvider extends ChangeNotifier {
   void setMapType(MapType mapType) {
     _currentMapType = mapType;
     notifyListeners();
-    
+
     // Update preferences if available
     if (_preferencesProvider != null) {
       final mapTypeString = _getStringFromMapType(mapType);

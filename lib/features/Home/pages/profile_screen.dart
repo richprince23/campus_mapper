@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
@@ -178,14 +179,40 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 // Profile Picture
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  backgroundImage: authProvider.userPhotoURL != null
-                      ? NetworkImage(authProvider.userPhotoURL!)
-                      : null,
-                  child: authProvider.userPhotoURL == null
-                      ? Text(
+                authProvider.userPhotoURL != null
+                    ? CachedNetworkImage(
+                        imageUrl: authProvider.userPhotoURL!,
+                        imageBuilder: (context, imageProvider) => CircleAvatar(
+                          radius: 50,
+                          backgroundImage: imageProvider,
+                        ),
+                        placeholder: (context, url) => CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          child: Text(
+                            authProvider.userDisplayName
+                                .substring(0, 1)
+                                .toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      )
+                    : CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
                           authProvider.userDisplayName
                               .substring(0, 1)
                               .toUpperCase(),
@@ -194,9 +221,8 @@ class ProfileScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
-                        )
-                      : null,
-                ),
+                        ),
+                      ),
 
                 const SizedBox(height: 16),
 
@@ -241,7 +267,7 @@ class ProfileScreen extends StatelessWidget {
                       builder: (context) => const EditProfileScreen(),
                     ),
                   );
-                  
+
                   if (result == true && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -315,7 +341,7 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Terms & Conditions',
                 subtitle: 'View terms and conditions',
                 onTap: () async {
-                  const url = 'https://suptle.com/campus-mapper/terms';
+                  const url = 'https://suptle.com/terms-and-conditions';
                   if (await canLaunchUrl(Uri.parse(url))) {
                     await launchUrl(Uri.parse(url),
                         mode: LaunchMode.externalApplication);
@@ -323,7 +349,8 @@ class ProfileScreen extends StatelessWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Could not open terms and conditions')),
+                            content:
+                                Text('Could not open terms and conditions')),
                       );
                     }
                   }

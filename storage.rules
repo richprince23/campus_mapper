@@ -1,9 +1,15 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // User profile photos - only authenticated users can read/write their own photos
+    match /user_photos/{userId}/{allPaths=**} {
+      allow read: if true; // Allow public read access for profile photos
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Fallback rule for other paths - require authentication
     match /{allPaths=**} {
-      // Allow read/write for development - adjust for production
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

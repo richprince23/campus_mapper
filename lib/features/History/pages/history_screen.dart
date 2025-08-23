@@ -45,32 +45,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 tooltip: 'Refresh',
               ),
             ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(72),
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withAlpha(51),
-                  ),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search history...',
-                    prefixIcon: Icon(HugeIcons.strokeRoundedSearch01),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  onChanged: historyProvider.setSearchQuery,
-                ),
-              ),
-            ),
           ),
           body: historyProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -226,7 +200,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         }
         break;
       default:
-        print("default hit");
+        debugPrint("default hit");
     }
   }
 

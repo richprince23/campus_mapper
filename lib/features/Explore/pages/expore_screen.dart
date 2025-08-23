@@ -158,11 +158,13 @@ class _ExploreScreenState extends State<ExploreScreen>
                         );
 
                         // Add to history
-                        final historyProvider = Provider.of<UserHistoryProvider>(
-                            context,
-                            listen: false);
+                        final historyProvider =
+                            Provider.of<UserHistoryProvider>(context,
+                                listen: false);
                         final historyItem = UserHistory.placeVisited(
-                          userId: 'current_user', // TODO: Get from auth
+                          userId:
+                              context.read<AuthProvider>().currentUser?.uid ??
+                                  'current_user_id',
                           placeId: selectedPlace!.id ?? '',
                           placeName: selectedPlace!.name ?? 'Unknown Location',
                           category: selectedPlace!.category,
@@ -422,7 +424,8 @@ class _ExploreScreenState extends State<ExploreScreen>
             );
 
             // Add to history
-            final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+            final historyProvider =
+                Provider.of<UserHistoryProvider>(context, listen: false);
             final historyItem = UserHistory.placeVisited(
               userId: 'current_user', // TODO: Get from auth
               placeId: selectedPlace!.id ?? '',
@@ -540,7 +543,8 @@ class _ExploreScreenState extends State<ExploreScreen>
                 );
 
                 // Add to history
-                final historyProvider = Provider.of<UserHistoryProvider>(context, listen: false);
+                final historyProvider =
+                    Provider.of<UserHistoryProvider>(context, listen: false);
                 final historyItem = UserHistory.placeVisited(
                   userId: 'current_user', // TODO: Get from auth
                   placeId: selectedPlace!.id ?? '',
@@ -908,7 +912,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     // Get current camera position and zoom level
     final zoom = await _mapController.getZoomLevel();
     final region = await _mapController.getVisibleRegion();
-    
+
     if (mounted) {
       final center = LatLng(
         (region.northeast.latitude + region.southwest.latitude) / 2,
@@ -930,7 +934,7 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   void _showAddLocationDialog() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     // Check if user is logged in
     if (!authProvider.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -946,7 +950,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => AddLocationScreen(
-          initialLocation: _userPosition != null 
+          initialLocation: _userPosition != null
               ? LatLng(_userPosition!.latitude, _userPosition!.longitude)
               : null,
         ),

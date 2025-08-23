@@ -1,3 +1,4 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -32,6 +33,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _displayNameController.text = authProvider.userDisplayName;
     // Phone and bio would need to be loaded from user profile if available
+    _phoneController.text = authProvider.userPhoneNumber ?? '';
+    _bioController.text = authProvider.userBio ?? '';
   }
 
   @override
@@ -330,21 +333,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: source,
-        imageQuality: 70,
-        maxWidth: 512,
-        maxHeight: 512,
+        imageQuality: 80,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        preferredCameraDevice: CameraDevice.front,
       );
 
       if (image != null) {
+        final file = File(image.path);
+        
+        // Validate file exists and has reasonable size
+        if (!await file.exists()) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Selected image file not found'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        final fileSize = await file.length();
+        debugPrint('Selected image size: $fileSize bytes');
+        
+        // Check file size (limit to 5MB)
+        if (fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image too large. Please select an image smaller than 5MB.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _selectedImage = File(image.path);
+          _selectedImage = file;
           _hasChanges = true;
         });
+        
+        debugPrint('Image selected successfully: ${image.path}');
+      } else {
+        debugPrint('No image selected');
       }
     } catch (e) {
+      debugPrint('Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error selecting image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -373,9 +416,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Handle image upload if there's a selected image
       if (_selectedImage != null) {
-        // TODO: Upload image to Firebase Storage and get URL
-        // For now, we'll just use null
-        photoURL = null;
+        // Show upload progress
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 16),
+                  Text('Uploading image...'),
+                ],
+              ),
+              duration: Duration(seconds: 10),
+            ),
+          );
+        }
+        
+        photoURL = await _uploadImageToFirebase(_selectedImage!);
+        
+        // Hide progress snackbar
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        }
+        
+        if (photoURL == null && mounted) {
+          // Image upload failed, show error and don't proceed
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      } else if (authProvider.userPhotoURL != null) {
+        photoURL = authProvider.userPhotoURL;
       }
 
       final success = await authProvider.updateProfile(
@@ -435,5 +511,88 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController.dispose();
     _bioController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _uploadImageToFirebase(File file) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.currentUser?.uid;
+      
+      if (userId == null) {
+        debugPrint('Error: No user ID available for upload');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Authentication required. Please sign in again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return null;
+      }
+
+      debugPrint('Starting image upload for user: $userId');
+      debugPrint('File path: ${file.path}');
+      debugPrint('File exists: ${await file.exists()}');
+      debugPrint('File size: ${await file.length()} bytes');
+
+      // Create a unique filename with timestamp to avoid conflicts
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'profile_$timestamp.jpg';
+      final storagePath = 'user_photos/$userId/$fileName';
+      
+      debugPrint('Upload path: $storagePath');
+      
+      final storageRef = FirebaseStorage.instance.ref().child(storagePath);
+      
+      // Upload with metadata
+      final uploadTask = storageRef.putFile(
+        file,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {
+            'uploadedBy': userId,
+            'uploadedAt': timestamp.toString(),
+          },
+        ),
+      );
+
+      // Monitor upload progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        debugPrint('Upload progress: ${progress.toStringAsFixed(1)}%');
+      });
+
+      debugPrint('Waiting for upload to complete...');
+      final snapshot = await uploadTask;
+      debugPrint('Upload completed. Getting download URL...');
+      
+      final downloadURL = await snapshot.ref.getDownloadURL();
+      debugPrint('Download URL obtained: $downloadURL');
+      
+      return downloadURL;
+    } on FirebaseException catch (e) {
+      debugPrint('Firebase error uploading image: ${e.code} - ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: ${e.message ?? 'Unknown Firebase error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('General error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
   }
 }

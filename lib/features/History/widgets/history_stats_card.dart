@@ -11,7 +11,7 @@ class HistoryStatsCard extends StatelessWidget {
     return Consumer<HistoryProvider>(
       builder: (context, historyProvider, child) {
         final stats = historyProvider.getHistoryStats();
-        
+
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           padding: const EdgeInsets.all(16),
@@ -22,71 +22,81 @@ class HistoryStatsCard extends StatelessWidget {
               color: Theme.of(context).colorScheme.outline.withAlpha(51),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    HugeIcons.strokeRoundedAnalytics01,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Activity Summary',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+          child: ExpansionTile(
+              title: Text(
+                'Activity Summary',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          HugeIcons.strokeRoundedAnalytics01,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatItem(
-                      context,
-                      'Total',
-                      stats['total']?.toString() ?? '0',
-                      HugeIcons.strokeRoundedTime04,
-                      Theme.of(context).colorScheme.primary,
+                        const SizedBox(width: 8),
+                        Text(
+                          'Activity Summary',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatItem(
-                      context,
-                      'Searches',
-                      stats['searches']?.toString() ?? '0',
-                      HugeIcons.strokeRoundedSearch01,
-                      Theme.of(context).colorScheme.secondary,
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            'Total',
+                            stats['total']?.toString() ?? '0',
+                            HugeIcons.strokeRoundedTime04,
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            'Searches',
+                            stats['searches']?.toString() ?? '0',
+                            HugeIcons.strokeRoundedSearch01,
+                            Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            'Routes',
+                            stats['navigations']?.toString() ?? '0',
+                            HugeIcons.strokeRoundedRoute01,
+                            Theme.of(context).colorScheme.tertiary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            'Places',
+                            stats['locationViews']?.toString() ?? '0',
+                            HugeIcons.strokeRoundedLocation01,
+                            Colors.green,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatItem(
-                      context,
-                      'Routes',
-                      stats['navigations']?.toString() ?? '0',
-                      HugeIcons.strokeRoundedRoute01,
-                      Theme.of(context).colorScheme.tertiary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatItem(
-                      context,
-                      'Places',
-                      stats['locationViews']?.toString() ?? '0',
-                      HugeIcons.strokeRoundedLocation01,
-                      Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ]),
         );
       },
     );

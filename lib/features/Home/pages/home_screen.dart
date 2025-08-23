@@ -1,7 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
+import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,7 +48,10 @@ class HomeScreenState extends State<HomeScreen> {
             CircleAvatar(
               radius: 20,
               backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, size: 35, color: Colors.blue),
+              backgroundImage: CachedNetworkImageProvider(
+                  Provider.of<AuthProvider>(context, listen: false)
+                          .userPhotoURL ??
+                      'https://www.gravatar.com/avatar/placeholder'),
             ),
             const SizedBox(width: 16),
             Column(
@@ -59,7 +65,8 @@ class HomeScreenState extends State<HomeScreen> {
                   _getRankTitle(_calculateUserRank(historyProvider.stats)),
                   style: TextStyle(
                     fontSize: 12,
-                    color: _getRankColor(_calculateUserRank(historyProvider.stats)),
+                    color: _getRankColor(
+                        _calculateUserRank(historyProvider.stats)),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -75,19 +82,19 @@ class HomeScreenState extends State<HomeScreen> {
     return Consumer<UserHistoryProvider>(
       builder: (context, historyProvider, child) {
         final stats = historyProvider.stats;
-        
+
         // Calculate total places (visited + added + favorited)
         final placesVisited = stats['places_visited'] ?? 0;
         final placesAdded = stats['places_added'] ?? 0;
         final placesFavorited = stats['places_favorited'] ?? 0;
         final totalPlaces = placesVisited + placesAdded + placesFavorited;
-        
+
         final totalDistance = stats['total_distance'] as double? ?? 0.0;
         final totalCalories = stats['total_calories'] as double? ?? 0.0;
-        
+
         // Calculate user rank based on activity score
         final userRank = _calculateUserRank(stats);
-        
+
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -176,7 +183,7 @@ class HomeScreenState extends State<HomeScreen> {
         final userRank = _calculateUserRank(stats);
         final rankTitle = _getRankTitle(userRank);
         final rankColor = _getRankColor(userRank);
-        
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -275,9 +282,9 @@ class HomeScreenState extends State<HomeScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  
+
                   final recentPlaces = snapshot.data ?? [];
-                  
+
                   if (recentPlaces.isEmpty) {
                     return Center(
                       child: Column(
@@ -301,7 +308,7 @@ class HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   }
-                  
+
                   return ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: recentPlaces.length,
@@ -376,29 +383,30 @@ class HomeScreenState extends State<HomeScreen> {
     final journeysCompleted = (stats['journeys_completed'] ?? 0) as int;
     final searchesPerformed = (stats['searches_performed'] ?? 0) as int;
     final placesFavorited = (stats['places_favorited'] ?? 0) as int;
-    final totalDistance = (stats['total_distance'] as double? ?? 0.0) / 1000; // Convert to km
-    
+    final totalDistance =
+        (stats['total_distance'] as double? ?? 0.0) / 1000; // Convert to km
+
     // Weighted scoring system
-    final activityScore = (placesAdded * 10) +      // Adding places worth more
-                         (placesVisited * 3) +       // Visiting places
-                         (journeysCompleted * 5) +   // Completing journeys
-                         (searchesPerformed * 1) +   // Searches (basic activity)
-                         (placesFavorited * 2) +     // Favoriting places
-                         (totalDistance * 2).round(); // Distance bonus
-    
+    final activityScore = (placesAdded * 10) + // Adding places worth more
+        (placesVisited * 3) + // Visiting places
+        (journeysCompleted * 5) + // Completing journeys
+        (searchesPerformed * 1) + // Searches (basic activity)
+        (placesFavorited * 2) + // Favoriting places
+        (totalDistance * 2).round(); // Distance bonus
+
     // Rank based on score ranges (can be adjusted)
-    if (activityScore >= 1000) return 1;  // Elite
-    if (activityScore >= 500) return 2;   // Expert
-    if (activityScore >= 200) return 3;   // Advanced
-    if (activityScore >= 100) return 4;   // Intermediate
-    if (activityScore >= 50) return 5;    // Active
-    if (activityScore >= 20) return 6;    // Beginner
+    if (activityScore >= 1000) return 1; // Elite
+    if (activityScore >= 500) return 2; // Expert
+    if (activityScore >= 200) return 3; // Advanced
+    if (activityScore >= 100) return 4; // Intermediate
+    if (activityScore >= 50) return 5; // Active
+    if (activityScore >= 20) return 6; // Beginner
     return 10; // Newcomer
   }
 
   String _formatDistance(double distanceInMeters) {
     if (distanceInMeters == 0) return '0 km';
-    
+
     final distanceInKm = distanceInMeters / 1000;
     if (distanceInKm < 1) {
       return '${distanceInMeters.toStringAsFixed(0)} m';
@@ -420,49 +428,77 @@ class HomeScreenState extends State<HomeScreen> {
 
   String _getRankTitle(int rank) {
     switch (rank) {
-      case 1: return 'Elite Explorer';
-      case 2: return 'Expert Navigator';
-      case 3: return 'Advanced Adventurer';
-      case 4: return 'Intermediate Walker';
-      case 5: return 'Active Explorer';
-      case 6: return 'Beginner Explorer';
-      default: return 'Newcomer';
+      case 1:
+        return 'Elite Explorer';
+      case 2:
+        return 'Expert Navigator';
+      case 3:
+        return 'Advanced Adventurer';
+      case 4:
+        return 'Intermediate Walker';
+      case 5:
+        return 'Active Explorer';
+      case 6:
+        return 'Beginner Explorer';
+      default:
+        return 'Newcomer';
     }
   }
 
   Color _getRankColor(int rank) {
     switch (rank) {
-      case 1: return Colors.amber; // Gold for Elite
-      case 2: return Colors.purple; // Purple for Expert
-      case 3: return Colors.blue; // Blue for Advanced
-      case 4: return Colors.green; // Green for Intermediate
-      case 5: return Colors.orange; // Orange for Active
-      case 6: return Colors.teal; // Teal for Beginner
-      default: return Colors.grey; // Grey for Newcomer
+      case 1:
+        return Colors.amber; // Gold for Elite
+      case 2:
+        return Colors.purple; // Purple for Expert
+      case 3:
+        return Colors.blue; // Blue for Advanced
+      case 4:
+        return Colors.green; // Green for Intermediate
+      case 5:
+        return Colors.orange; // Orange for Active
+      case 6:
+        return Colors.teal; // Teal for Beginner
+      default:
+        return Colors.grey; // Grey for Newcomer
     }
   }
 
   String _getRankDescription(int rank) {
     switch (rank) {
-      case 1: return 'Campus master with 1000+ activity points';
-      case 2: return 'Experienced explorer with 500+ points';
-      case 3: return 'Regular campus user with 200+ points';
-      case 4: return 'Active campus visitor with 100+ points';
-      case 5: return 'Getting around campus with 50+ points';
-      case 6: return 'Starting your campus journey with 20+ points';
-      default: return 'Welcome to campus exploration!';
+      case 1:
+        return 'Campus master with 1000+ activity points';
+      case 2:
+        return 'Experienced explorer with 500+ points';
+      case 3:
+        return 'Regular campus user with 200+ points';
+      case 4:
+        return 'Active campus visitor with 100+ points';
+      case 5:
+        return 'Getting around campus with 50+ points';
+      case 6:
+        return 'Starting your campus journey with 20+ points';
+      default:
+        return 'Welcome to campus exploration!';
     }
   }
 
   IconData _getRankIcon(int rank) {
     switch (rank) {
-      case 1: return Icons.emoji_events; // Trophy for Elite
-      case 2: return Icons.stars; // Stars for Expert
-      case 3: return Icons.trending_up; // Trending up for Advanced
-      case 4: return Icons.explore; // Explore for Intermediate
-      case 5: return Icons.directions_walk; // Walking for Active
-      case 6: return Icons.place; // Place for Beginner
-      default: return Icons.person; // Person for Newcomer
+      case 1:
+        return Icons.emoji_events; // Trophy for Elite
+      case 2:
+        return Icons.stars; // Stars for Expert
+      case 3:
+        return Icons.trending_up; // Trending up for Advanced
+      case 4:
+        return Icons.explore; // Explore for Intermediate
+      case 5:
+        return Icons.directions_walk; // Walking for Active
+      case 6:
+        return Icons.place; // Place for Beginner
+      default:
+        return Icons.person; // Person for Newcomer
     }
   }
 
