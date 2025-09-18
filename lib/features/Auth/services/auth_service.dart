@@ -21,6 +21,7 @@ class AuthService {
     required String email,
     required String password,
     required String fullName,
+    String? universityId,
   }) async {
     try {
       // Create user account
@@ -33,7 +34,7 @@ class AuthService {
       await userCredential.user?.updateDisplayName(fullName);
       
       // Create user document in Firestore
-      await _createUserDocument(userCredential.user!, fullName);
+      await _createUserDocument(userCredential.user!, fullName, universityId);
       
       log('User signed up successfully: ${userCredential.user?.uid}');
       return userCredential;
@@ -103,7 +104,7 @@ class AuthService {
   }
   
   /// Create user document in Firestore
-  Future<void> _createUserDocument(User user, String fullName) async {
+  Future<void> _createUserDocument(User user, String fullName, [String? universityId]) async {
     try {
       final userDoc = _firestore.collection('user_profiles').doc(user.uid);
       
@@ -115,6 +116,7 @@ class AuthService {
         'profile_picture_path': null,
         'phone_number': user.phoneNumber,
         'date_of_birth': null,
+        'university_id': universityId,
         'preferences': {
           'notification_enabled': true,
           'location_sharing': true,
@@ -205,6 +207,7 @@ class AuthService {
     String? photoURL,
     String? phoneNumber,
     String? bio,
+    String? universityId,
   }) async {
     try {
       final user = currentUser;
@@ -235,6 +238,9 @@ class AuthService {
       }
       if (bio != null) {
         updateData['bio'] = bio;
+      }
+      if (universityId != null) {
+        updateData['university_id'] = universityId;
       }
       
       await _firestore.collection('user_profiles').doc(user.uid).update(updateData);

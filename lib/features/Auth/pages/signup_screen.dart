@@ -1,5 +1,7 @@
 import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
+import 'package:campus_mapper/core/widgets/university_dropdown.dart';
+import 'package:campus_mapper/core/models/university.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +22,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
+  University? _selectedUniversity;
 
   @override
   void dispose() {
@@ -105,6 +108,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       return 'Name must be at least 2 characters';
                     }
                     return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // University field
+                UniversityDropdown(
+                  selectedUniversity: _selectedUniversity,
+                  onChanged: (university) {
+                    setState(() {
+                      _selectedUniversity = university;
+                    });
                   },
                 ),
                 
@@ -420,6 +435,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       fullName: _fullNameController.text.trim(),
+      universityId: _selectedUniversity?.id,
     );
 
     if (success && mounted) {

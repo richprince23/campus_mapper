@@ -46,7 +46,9 @@ abstract final class AppTheme {
   static ThemeData dark = FlexThemeData.dark(
     scheme: FlexScheme.greenM3,
     subThemesData: const FlexSubThemesData(
-      // inputDecoratorFillColor: Colors.black,
+      inputDecoratorFillColor: Colors.black,
+      inputDecoratorSchemeColor: SchemeColor.primary,
+      inputDecoratorBackgroundAlpha: 255,
       interactionEffects: true,
       tintedDisabledControls: true,
       blendOnColors: true,
@@ -54,7 +56,7 @@ abstract final class AppTheme {
       useM2StyleDividerInM3: true,
       adaptiveSplash: FlexAdaptive.all(),
       defaultRadius: 12.0,
-      inputDecoratorIsFilled: true,
+      inputDecoratorIsFilled: false,
       inputDecoratorBorderType: FlexInputBorderType.outline,
       fabUseShape: true,
       fabAlwaysCircular: true,
@@ -62,6 +64,7 @@ abstract final class AppTheme {
       navigationRailUseIndicator: true,
       navigationRailLabelType: NavigationRailLabelType.all,
     ),
+    darkIsTrueBlack: false,
     visualDensity: FlexColorScheme.comfortablePlatformDensity,
     cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
     primaryTextTheme: GoogleFonts.aBeeZeeTextTheme(),

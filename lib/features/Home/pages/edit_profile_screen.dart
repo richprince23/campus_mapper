@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'dart:io';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
+import 'package:campus_mapper/core/widgets/university_dropdown.dart';
+import 'package:campus_mapper/core/models/university.dart';
+import 'package:campus_mapper/core/services/university_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,6 +25,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _selectedImage;
   bool _isLoading = false;
   bool _hasChanges = false;
+  University? _selectedUniversity;
+  final UniversityService _universityService = UniversityService();
 
   @override
   void initState() {
@@ -29,12 +34,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
-  void _loadUserData() {
+  void _loadUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _displayNameController.text = authProvider.userDisplayName;
     // Phone and bio would need to be loaded from user profile if available
     _phoneController.text = authProvider.userPhoneNumber ?? '';
     _bioController.text = authProvider.userBio ?? '';
+    
+    // Load user university
+    try {
+      final userProfile = await authProvider.getUserProfile();
+      if (userProfile != null && userProfile['university_id'] != null) {
+        final university = await _universityService.getUniversityById(userProfile['university_id']);
+        if (mounted && university != null) {
+          setState(() {
+            _selectedUniversity = university;
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+    }
   }
 
   @override
@@ -191,6 +211,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLines: 3,
                 maxLength: 150,
                 onChanged: (_) => _setHasChanges(true),
+              ),
+              const SizedBox(height: 16),
+
+              // University Selection
+              UniversityDropdown(
+                selectedUniversity: _selectedUniversity,
+                onChanged: (university) {
+                  setState(() {
+                    _selectedUniversity = university;
+                    _hasChanges = true;
+                  });
+                },
+                label: 'University',
+                hint: 'Select your university',
               ),
               const SizedBox(height: 32),
 
@@ -463,6 +497,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ? null
             : _bioController.text.trim(),
         photoURL: photoURL,
+        universityId: _selectedUniversity?.id,
       );
 
       if (success && mounted) {

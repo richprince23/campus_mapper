@@ -23,6 +23,17 @@ class LocationService {
         throw Exception('User must be logged in to add locations');
       }
 
+      // Get user's university ID
+      String? universityId;
+      try {
+        final userDoc = await _firestore.collection('user_profiles').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data() != null) {
+          universityId = userDoc.data()!['university_id'];
+        }
+      } catch (e) {
+        log('Could not fetch user university: $e');
+      }
+
       // Create location data
       final locationData = {
         'name': name,
@@ -35,6 +46,7 @@ class LocationService {
           'latitude': latitude,
           'longitude': longitude,
         },
+        'university_id': universityId, // Auto-scope to user's university
         'added_by': user.uid,
         'added_by_email': user.email ?? '',
         'created_at': FieldValue.serverTimestamp(),

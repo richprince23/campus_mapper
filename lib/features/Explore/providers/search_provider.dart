@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:campus_mapper/features/Explore/models/location.dart';
 import 'package:campus_mapper/features/History/models/user_history.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
+import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +41,21 @@ class SearchProvider extends ChangeNotifier {
 
   void setContext(BuildContext context) {
     _context = context;
+  }
+
+  Future<String?> _getUserUniversityId() async {
+    if (_context == null) return null;
+    
+    try {
+      final authProvider = Provider.of<AuthProvider>(_context!, listen: false);
+      if (!authProvider.isLoggedIn) return null;
+      
+      final userProfile = await authProvider.getUserProfile();
+      return userProfile?['university_id'];
+    } catch (e) {
+      print('Error getting user university: $e');
+      return null;
+    }
   }
 
   Future<void> _addToHistory(String query, {String? category, int? resultsCount}) async {
@@ -149,9 +165,18 @@ class SearchProvider extends ChangeNotifier {
     try {
       // Convert query to lowercase for case-insensitive search
       final lowerQuery = query.toLowerCase();
+      
+      // Get user's university
+      final universityId = await _getUserUniversityId();
 
-      final response = await _firestore
-          .collection('locations')
+      Query firestoreQuery = _firestore.collection('locations');
+      
+      // Filter by university if user is logged in and has a university
+      if (universityId != null) {
+        firestoreQuery = firestoreQuery.where('university_id', isEqualTo: universityId);
+      }
+      
+      final response = await firestoreQuery
           .where('name_lower', isGreaterThanOrEqualTo: lowerQuery)
           // .where('name_lower', isLessThanOrEqualTo: '$lowerQuery\uf8ff')
           .limit(10)
@@ -169,12 +194,17 @@ class SearchProvider extends ChangeNotifier {
           response.docs.map((doc) => Location.fromFirestore(doc)).toList();
 
       // Return formatted data for TypeAheadField
-      final results = response.docs
-          .map((doc) => {
-                'id': doc.id,
-                ...doc.data(),
-              })
-          .toList();
+      final results = <Map<String, dynamic>>[];
+      for (final doc in response.docs) {
+        final data = doc.data();
+        final result = <String, dynamic>{
+          'id': doc.id,
+        };
+        if (data is Map<String, dynamic>) {
+          result.addAll(data);
+        }
+        results.add(result);
+      }
 
       // Add to recent searches
       if (!_recentSearches.contains(query)) {
@@ -216,6 +246,9 @@ class SearchProvider extends ChangeNotifier {
     try {
       print('Searching for category: "$category"');
 
+      // Get user's university
+      final universityId = await _getUserUniversityId();
+
       // Get possible category names to search for
       List<String> searchTerms = _categoryMappings[category] ?? [category];
 
@@ -226,8 +259,14 @@ class SearchProvider extends ChangeNotifier {
       // Search for each possible category name
       for (String term in searchTerms) {
         try {
-          final response = await _firestore
-              .collection('locations')
+          Query firestoreQuery = _firestore.collection('locations');
+          
+          // Filter by university if user is logged in and has a university
+          if (universityId != null) {
+            firestoreQuery = firestoreQuery.where('university_id', isEqualTo: universityId);
+          }
+          
+          final response = await firestoreQuery
               .where('category', isEqualTo: term)
               .get();
 
@@ -297,14 +336,25 @@ class SearchProvider extends ChangeNotifier {
     try {
       print('Flexible search for category: "$category"');
 
+      // Get user's university
+      final universityId = await _getUserUniversityId();
+
+      Query firestoreQuery = _firestore.collection('locations');
+      
+      // Filter by university if user is logged in and has a university
+      if (universityId != null) {
+        firestoreQuery = firestoreQuery.where('university_id', isEqualTo: universityId);
+      }
+
       // Get all documents and filter client-side for case-insensitive search
-      final response = await _firestore.collection('locations').get();
+      final response = await firestoreQuery.get();
 
       final results = response.docs
           .where((doc) {
             final data = doc.data();
-            final docCategory =
-                data['category']?.toString().toLowerCase() ?? '';
+            final docCategory = data is Map<String, dynamic>
+                ? (data['category']?.toString().toLowerCase() ?? '')
+                : '';
             final searchCategory = category.toLowerCase();
 
             // Check if category contains the search term or vice versa

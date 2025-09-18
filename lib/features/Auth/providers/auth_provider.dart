@@ -47,6 +47,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String fullName,
+    String? universityId,
   }) async {
     try {
       _setLoading(true);
@@ -56,6 +57,7 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         fullName: fullName,
+        universityId: universityId,
       );
 
       return true;
@@ -142,6 +144,7 @@ class AuthProvider extends ChangeNotifier {
     String? photoURL,
     String? phoneNumber,
     String? bio,
+    String? universityId,
   }) async {
     try {
       _setLoading(true);
@@ -152,6 +155,7 @@ class AuthProvider extends ChangeNotifier {
         photoURL: photoURL,
         phoneNumber: phoneNumber,
         bio: bio,
+        universityId: universityId,
       );
 
       // Reload current user to get updated data

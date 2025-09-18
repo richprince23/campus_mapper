@@ -1,4 +1,5 @@
 import 'package:campus_mapper/core/custom_theme.dart';
+import 'package:campus_mapper/core/services/university_service.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/map_provider.dart';
 import 'package:campus_mapper/features/Explore/providers/search_provider.dart';
@@ -20,6 +21,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterForegroundTask.initCommunicationPort(); // init foreground task
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize universities in background
+  _initializeUniversities();
+  
   // use firebase emulator
   // if (kDebugMode) {
   //   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
@@ -41,6 +46,16 @@ void main() async {
       child: const MainApp(),
     ),
   );
+}
+
+void _initializeUniversities() {
+  // Initialize universities in background without blocking app startup
+  UniversityService().getAllUniversities().then((universities) {
+    // Successfully loaded universities
+  }).catchError((e) {
+    // Silently handle errors during initialization
+    // The service will fall back to static list if needed
+  });
 }
 
 class MainApp extends StatelessWidget {
