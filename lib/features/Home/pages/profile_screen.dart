@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:campus_mapper/features/Admin/pages/migration_screen.dart';
 import 'package:campus_mapper/features/Auth/pages/login_screen.dart';
 import 'package:campus_mapper/features/Auth/providers/auth_provider.dart';
 import 'package:campus_mapper/features/History/providers/user_history_provider.dart';
 import 'package:campus_mapper/features/Home/pages/edit_profile_screen.dart';
 import 'package:campus_mapper/features/Home/pages/terms_conditions_screen.dart';
 import 'package:campus_mapper/features/Preferences/pages/preferences_screen.dart';
+import 'package:campus_mapper/core/utils/quick_migration.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
@@ -169,6 +171,11 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // TEMPORARY: Quick Migration Button (Remove after migration)
+          const QuickMigrationButton(),
+
+          const SizedBox(height: 16),
+
           // Profile Header
           Container(
             width: double.infinity,
@@ -189,15 +196,18 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         placeholder: (context, url) => CircleAvatar(
                           radius: 50,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           child: const CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         ),
                         errorWidget: (context, url, error) => CircleAvatar(
                           radius: 50,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           child: Text(
                             authProvider.userDisplayName
                                 .substring(0, 1)
@@ -288,6 +298,19 @@ class ProfileScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const PreferencesScreen(),
+                    ),
+                  );
+                },
+              ),
+              if (authProvider.userEmail == "richardkns7@gmail.com") _buildActionItem(
+                context,
+                icon: HugeIcons.strokeRoundedSettings02,
+                title: 'Migrations',
+                subtitle: 'Admin Migrations',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MigrationScreen(),
                     ),
                   );
                 },

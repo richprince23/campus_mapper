@@ -47,9 +47,11 @@ class _MigrationScreenState extends State<MigrationScreen> {
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    const Text('• Migrate: Add UEW to all locations without university'),
+                    const Text('• Migrate All: Add UEW to all locations AND user profiles'),
+                    const Text('• Migrate Locations: Add UEW to all locations without university'),
+                    const Text('• Migrate Users: Add UEW to all user profiles without university'),
                     const Text('• Verify: Check migration results'),
-                    const Text('• Rollback: Remove university from all UEW locations'),
+                    const Text('• Rollback: Remove university from all UEW data'),
                   ],
                 ),
               ),
@@ -74,7 +76,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
             const SizedBox(height: 24),
             
             ElevatedButton(
-              onPressed: _isLoading ? null : _runMigration,
+              onPressed: _isLoading ? null : _runCompleteMigration,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.green,
@@ -89,7 +91,27 @@ class _MigrationScreenState extends State<MigrationScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text('Run Migration'),
+                  : const Text('Migrate All (Locations + Users)'),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            OutlinedButton(
+              onPressed: _isLoading ? null : _runLocationMigration,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Migrate Locations Only'),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            OutlinedButton(
+              onPressed: _isLoading ? null : _runUserProfileMigration,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Migrate User Profiles Only'),
             ),
             
             const SizedBox(height: 12),
@@ -119,20 +141,64 @@ class _MigrationScreenState extends State<MigrationScreen> {
     );
   }
 
-  Future<void> _runMigration() async {
+  Future<void> _runCompleteMigration() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Starting migration...';
+      _statusMessage = 'Starting complete migration (locations + user profiles)...';
+    });
+
+    try {
+      await _migration.migrateAll();
+      setState(() {
+        _statusMessage = '✅ Complete migration successful! All locations and user profiles updated to University of Education, Winneba.';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = '❌ Complete migration failed: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _runLocationMigration() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Starting location migration...';
     });
 
     try {
       await _migration.migrateAllLocations();
       setState(() {
-        _statusMessage = '✅ Migration completed successfully! All locations have been updated to University of Education, Winneba.';
+        _statusMessage = '✅ Location migration completed! All locations updated to University of Education, Winneba.';
       });
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Migration failed: $e';
+        _statusMessage = '❌ Location migration failed: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _runUserProfileMigration() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Starting user profile migration...';
+    });
+
+    try {
+      await _migration.migrateAllUserProfiles();
+      setState(() {
+        _statusMessage = '✅ User profile migration completed! All user profiles updated to University of Education, Winneba.';
+      });
+    } catch (e) {
+      setState(() {
+        _statusMessage = '❌ User profile migration failed: $e';
       });
     } finally {
       setState(() {
