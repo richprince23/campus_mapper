@@ -302,19 +302,20 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-              if (authProvider.userEmail == "richardkns7@gmail.com") _buildActionItem(
-                context,
-                icon: HugeIcons.strokeRoundedSettings02,
-                title: 'Migrations',
-                subtitle: 'Admin Migrations',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MigrationScreen(),
-                    ),
-                  );
-                },
-              ),
+              if (authProvider.userEmail == "richardkns7@gmail.com")
+                _buildActionItem(
+                  context,
+                  icon: HugeIcons.strokeRoundedSettings02,
+                  title: 'Migrations',
+                  subtitle: 'Admin Migrations',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MigrationScreen(),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
 
