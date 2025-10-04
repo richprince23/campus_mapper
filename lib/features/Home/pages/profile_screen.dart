@@ -172,9 +172,9 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         children: [
           // TEMPORARY: Quick Migration Button (Remove after migration)
-          const QuickMigrationButton(),
+          // const QuickMigrationButton(),
 
-          const SizedBox(height: 16),
+          // const SizedBox(height: 16),
 
           // Profile Header
           Container(
